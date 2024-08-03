@@ -1,16 +1,16 @@
 use log::error;
-use portable_atomic::{AtomicU64, Ordering};
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::commitment_config::CommitmentConfig;
 use std::{
     fmt::Debug,
     time::{Duration, UNIX_EPOCH},
 };
+use std::sync::atomic::{AtomicU64, Ordering};
+use solana_client::client_error::reqwest::Url;
 
 use tokio::sync::Mutex;
-use url::Url;
 
-use crate::{config::RpcEntry, round_robin::RoundRobin, TransactorError};
+use super::{config::RpcEntry, round_robin::RoundRobin, TransactorError};
 
 struct Rpc {
     url: Url,

@@ -1,17 +1,18 @@
 use anchor_lang::prelude::borsh::BorshDeserialize;
+use anchor_lang::prelude::Pubkey;
 use log::debug;
 
 use super::solana_event_listener::LogsBunch;
-use crate::common::solana_logs::parse_logs;
+use crate::solana_logs::parse_logs;
 
 pub trait EventProcessor {
     type Event: anchor_lang::Event + BorshDeserialize;
 
-    fn on_logs(&self, logs_bunch: LogsBunch) {
+    fn on_logs(&self, logs_bunch: LogsBunch, program: Pubkey) {
         let logs = &logs_bunch.logs[..];
         let logs: Vec<&str> = logs.iter().by_ref().map(String::as_str).collect();
         let Ok(events) =
-            parse_logs::parse_logs::<Self::Event>(logs.as_slice(), photon::ID.to_string().as_str())
+            parse_logs::parse_logs::<Self::Event>(logs.as_slice(), program.to_string().as_str())
         else {
             log::error!("Failed to parse logs: {:?}", logs);
             return;

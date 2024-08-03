@@ -8,7 +8,8 @@ use solana_sdk::{
 };
 use std::fmt::Display;
 
-use crate::{log_with_ctx, TransactorError};
+use super::{ TransactorError};
+use crate::log_with_ctx;
 
 const MAX_CU: u32 = 1_400_000;
 const MAX_MSG_LEN: usize = 1232 - 65; // assuming only one signature

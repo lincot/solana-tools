@@ -28,12 +28,15 @@ use tokio::{
 };
 use uuid::Uuid;
 
-use crate::{
+use super::{
     ix_compiler::{InstructionBundle, IxCompiler},
-    log_with_ctx,
+
     rpc_pool::RpcPool,
     TransactorError,
 };
+
+use crate::log_with_ctx;
+
 
 #[derive(Clone)]
 pub struct MessageBundle {

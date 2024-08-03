@@ -1,39 +1,30 @@
 use log::{debug, error, warn};
-use mongodb::{
-    bson::{doc, Bson, Document},
-    options::{ClientOptions, Credential, FindOneOptions, ServerApi, ServerApiVersion},
-    Client,
-};
+
 use solana_client::{
     rpc_client::GetConfirmedSignaturesForAddress2Config, rpc_config::RpcTransactionConfig,
     rpc_response::RpcConfirmedTransactionStatusWithSignature,
 };
 use solana_sdk::{commitment_config::CommitmentConfig, pubkey::Pubkey, signature::Signature};
 use solana_transaction_status::UiTransactionEncoding;
-use solana_transactor::RpcPool;
+use crate::solana_transactor::RpcPool;
 use std::time::Duration;
 use std::{collections::VecDeque, str::FromStr};
 use tokio::sync::mpsc::UnboundedSender;
 
-use transmitter_common::mongodb::{mdb_solana_chain_id, MongodbConfig, MDB_LAST_BLOCK_COLLECTION};
 
-use crate::common::{
-    config::{SolanaClientConfig, SolanaListenerConfig},
-    solana_logs::{solana_event_listener::LogsBunch, EventListenerError},
-};
+use crate::solana_logs::{EventListenerError, LogsBunch};
+use crate::solana_logs::config::{SolanaClientConfig, SolanaListenerConfig};
+
 
 pub(super) struct SolanaRetroReader {
-    mongodb_config: MongodbConfig,
     logs_sender: UnboundedSender<LogsBunch>,
 }
 
 impl SolanaRetroReader {
     pub(super) fn new(
-        mongodb_config: MongodbConfig,
         logs_sender: UnboundedSender<LogsBunch>,
     ) -> SolanaRetroReader {
         SolanaRetroReader {
-            mongodb_config,
             logs_sender,
         }
     }
@@ -41,12 +32,9 @@ impl SolanaRetroReader {
     pub(super) async fn read_events_backward(
         &self,
         solana_config: &SolanaListenerConfig,
-        mongodb_config: &MongodbConfig,
     ) -> Result<(), EventListenerError> {
-        let Some(tx_read_from) = self.get_tx_read_from(solana_config, mongodb_config).await else {
-            debug!("No tx_read_from found, skip retrospective reading");
-            return Ok(());
-        };
+        let program_to_listen = Pubkey::from_str(&solana_config.program_listen_to).expect("Expected to be");
+        let tx_read_from = &solana_config.tx_read_from;
 
         debug!("Found tx_read_from, start backward reading until: {}", tx_read_from);
         let rpc_pool =
@@ -72,7 +60,7 @@ impl SolanaRetroReader {
             next_until = None;
             loop {
                 let signatures_backward = Self::get_signatures_chunk(
-                    &photon::ID,
+                    &program_to_listen,
                     &solana_config.client,
                     &rpc_pool,
                     until,
@@ -112,22 +100,6 @@ impl SolanaRetroReader {
             }
             tokio::time::sleep(Duration::from_secs(3)).await;
         }
-    }
-
-    async fn get_tx_read_from(
-        &self,
-        solana_config: &SolanaListenerConfig,
-        mongodb_config: &MongodbConfig,
-    ) -> Option<String> {
-        if let Some(ref tx_read_from) = solana_config.tx_read_from {
-            if !tx_read_from.is_empty() {
-                return Some(tx_read_from.clone());
-            }
-        }
-        if let Ok(result @ Some(_)) = self.get_last_processed_block(mongodb_config).await {
-            return result;
-        }
-        None
     }
 
     async fn process_signatures(
@@ -224,48 +196,4 @@ impl SolanaRetroReader {
         Ok(signatures_backward)
     }
 
-    async fn get_last_processed_block(
-        &self,
-        mongodb_config: &MongodbConfig,
-    ) -> Result<Option<String>, EventListenerError> {
-        let mut client_options =
-            ClientOptions::parse_async(&mongodb_config.uri).await.map_err(|err| {
-                error!("Failed to parse mongodb uri: {}", err);
-                EventListenerError::from(err)
-            })?;
-        let server_api = ServerApi::builder().version(ServerApiVersion::V1).build();
-        client_options.server_api = Some(server_api);
-        client_options.credential = Some(
-            Credential::builder()
-                .username(mongodb_config.user.clone())
-                .password(mongodb_config.password.clone())
-                .build(),
-        );
-        let client = Client::with_options(client_options).map_err(|err| {
-            error!("Failed to build mondodb client: {}", err);
-            EventListenerError::from(err)
-        })?;
-        let db = client.database(&mongodb_config.db);
-        let collection = db.collection::<Document>(MDB_LAST_BLOCK_COLLECTION);
-
-        let last_block: &str = &self.mongodb_config.key;
-        let chain_id = mdb_solana_chain_id();
-        let doc = collection
-            .find_one(doc! { "direction": "from", "chain": chain_id }, FindOneOptions::default())
-            .await
-            .map_err(|err| {
-                error!("Failed to request {}: {}", last_block, err);
-                EventListenerError::from(err)
-            })?;
-        let Some(doc) = doc else {
-            warn!("{}: not found", last_block);
-            return Ok(None);
-        };
-        let Some(Bson::String(tx_signature)) = doc.get(last_block).cloned() else {
-            warn!("Failed to get {} from document", last_block);
-            return Ok(None);
-        };
-        debug!("tx_signature has been read from mongodb: {}", tx_signature);
-        Ok(Some(tx_signature))
-    }
 }

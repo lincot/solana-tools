@@ -13,7 +13,7 @@ use solana_sdk::{
     instruction::AccountMeta, pubkey::Pubkey, signature::Keypair, signer::Signer, system_program,
 };
 
-use crate::{ix_compiler::InstructionBundle, SolanaTransactor, TransactorError};
+use super::{ix_compiler::InstructionBundle, SolanaTransactor, TransactorError};
 
 pub async fn send_with_alt(
     transactor: &SolanaTransactor,
