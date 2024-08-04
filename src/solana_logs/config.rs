@@ -4,11 +4,11 @@ use solana_sdk::commitment_config::{CommitmentConfig, CommitmentLevel};
 use crate::solana_transactor::RpcEntry;
 
 #[derive(Clone, Debug, Deserialize)]
-pub(crate) struct SolanaClientConfig {
+pub struct SolanaClientConfig {
     #[serde(deserialize_with = "deserialize_commitment")]
-    pub(crate) commitment: CommitmentConfig,
-    pub(crate) read_rpcs: Vec<RpcEntry>,
-    pub(crate) write_rpcs: Vec<RpcEntry>,
+    pub commitment: CommitmentConfig,
+    pub read_rpcs: Vec<RpcEntry>,
+    pub write_rpcs: Vec<RpcEntry>,
 }
 
 fn deserialize_commitment<'de, D>(deserializer: D) -> Result<CommitmentConfig, D::Error>
@@ -20,11 +20,11 @@ where
     Ok(CommitmentConfig { commitment })
 }
 
-#[derive(Deserialize)]
-pub(crate) struct SolanaListenerConfig {
+#[derive(Clone, Debug, Deserialize)]
+pub struct SolanaListenerConfig {
     #[serde(flatten)]
-    pub(crate) client: SolanaClientConfig,
+    pub client: SolanaClientConfig,
     #[serde(alias = "txreadfrom")]
-    pub(crate) tx_read_from: String,
-    pub(crate) program_listen_to: String
+    pub tx_read_from: String,
+    pub program_listen_to: String,
 }

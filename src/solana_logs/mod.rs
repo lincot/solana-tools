@@ -11,11 +11,12 @@ pub(crate) mod config;
 
 pub use solana_event_listener::LogsBunch;
 pub use event_processor::EventProcessor;
+pub use config::{SolanaClientConfig, SolanaListenerConfig};
 
 use crate::solana_transactor::TransactorError;
 
 #[derive(Debug, Error)]
-pub(crate) enum EventListenerError {
+pub enum EventListenerError {
     #[error("Solana client error")]
     SolanaClient,
     #[error("Solana transactor error {0}")]
