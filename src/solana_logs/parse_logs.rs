@@ -45,10 +45,10 @@ impl Execution {
     }
 }
 
-pub(crate) fn parse_logs<T: anchor_lang::Event + anchor_lang::AnchorDeserialize>(
+pub(crate) fn parse_logs<T: anchor_lang::AnchorDeserialize + anchor_lang::Discriminator>(
     logs: &[&str],
     program_id_str: &str,
-) -> Result<Vec<T>, EventListenerError> {
+) -> Result<Vec<T>, EventListenerError > {
     let mut events: Vec<T> = Vec::new();
     let mut do_pop = false;
     if !logs.is_empty() {
@@ -80,7 +80,7 @@ pub(crate) fn parse_logs<T: anchor_lang::Event + anchor_lang::AnchorDeserialize>
     Ok(events)
 }
 
-fn handle_program_log<T: anchor_lang::Event + anchor_lang::AnchorDeserialize>(
+fn handle_program_log<T: anchor_lang::AnchorDeserialize + anchor_lang::Discriminator>(
     self_program_str: &str,
     l: &str,
 ) -> Result<(Option<T>, bool), EventListenerError> {
@@ -91,8 +91,6 @@ fn handle_program_log<T: anchor_lang::Event + anchor_lang::AnchorDeserialize>(
         let borsh_bytes = match anchor_lang::__private::base64::decode(log) {
             Ok(borsh_bytes) => borsh_bytes,
             _ => {
-                #[cfg(feature = "debug")]
-                println!("Could not base64 decode log: {}", log);
                 return Ok((None, false));
             }
         };

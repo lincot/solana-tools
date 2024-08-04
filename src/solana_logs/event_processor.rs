@@ -1,12 +1,12 @@
 use anchor_lang::prelude::borsh::BorshDeserialize;
-use anchor_lang::prelude::Pubkey;
 use log::debug;
+use solana_sdk::pubkey::Pubkey;
 
 use super::solana_event_listener::LogsBunch;
 use crate::solana_logs::parse_logs;
 
 pub trait EventProcessor {
-    type Event: anchor_lang::Event + BorshDeserialize;
+    type Event: BorshDeserialize + anchor_lang::Discriminator;
 
     fn on_logs(&self, logs_bunch: LogsBunch, program: Pubkey) {
         let logs = &logs_bunch.logs[..];

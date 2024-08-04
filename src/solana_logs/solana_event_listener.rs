@@ -1,5 +1,3 @@
-use std::str::FromStr;
-use solana_sdk::pubkey::Pubkey;
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{solana_retro_reader::SolanaRetroReader, EventListenerError};
