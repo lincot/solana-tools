@@ -48,7 +48,7 @@ impl Execution {
 pub(crate) fn parse_logs<T: anchor_lang::AnchorDeserialize + anchor_lang::Discriminator>(
     logs: &[&str],
     program_id_str: &str,
-) -> Result<Vec<T>, EventListenerError > {
+) -> Result<Vec<T>, EventListenerError> {
     let mut events: Vec<T> = Vec::new();
     let mut do_pop = false;
     if !logs.is_empty() {
@@ -87,7 +87,10 @@ fn handle_program_log<T: anchor_lang::AnchorDeserialize + anchor_lang::Discrimin
     const PROGRAM_LOG: &str = "Program log: ";
     const PROGRAM_DATA: &str = "Program data: ";
 
-    if let Some(log) = l.strip_prefix(PROGRAM_LOG).or_else(|| l.strip_prefix(PROGRAM_DATA)) {
+    if let Some(log) = l
+        .strip_prefix(PROGRAM_LOG)
+        .or_else(|| l.strip_prefix(PROGRAM_DATA))
+    {
         let borsh_bytes = match anchor_lang::__private::base64::decode(log) {
             Ok(borsh_bytes) => borsh_bytes,
             _ => {
@@ -140,8 +143,18 @@ fn handle_irrelevant_log(this_program_str: &str, log: &str) -> (Option<String>, 
 
 #[cfg(test)]
 mod test {
-    use crate::common::solana_logs::parse_logs;
-    use photon::{ProposeEvent, ID as PROGRAM_ID};
+    use crate::solana_logs::parse_logs;
+    use anchor_lang::prelude::*;
+
+    #[event]
+    pub struct ProposeEvent {
+        pub protocol_id: Vec<u8>,
+        pub nonce: u64,
+        pub dst_chain_id: u128,
+        pub protocol_address: Vec<u8>,
+        pub function_selector: Vec<u8>,
+        pub params: Vec<u8>,
+    }
 
     #[test]
     fn test_logs_parsing() {
@@ -158,13 +171,17 @@ mod test {
             "Program EjpcUpcuJV2Mq9vjELMZHhgpvJ4ggoWtUYCTFqw6D9CZ success",
         ];
 
-        let events: Vec<ProposeEvent> = parse_logs::parse_logs(SAMPLE, &PROGRAM_ID.to_string())
-            .expect("Processing logs should not result in errors");
+        let events: Vec<ProposeEvent> =
+            parse_logs::parse_logs(SAMPLE, "3cAFEXstVzff2dXH8PFMgm81h8sQgpdskFGZqqoDgQkJ")
+                .expect("Processing logs should not result in errors");
         assert_eq!(events.len(), 1);
         let propose_event = events.first().expect("No events caught");
         assert_eq!(propose_event.dst_chain_id, 33133);
         assert_eq!(propose_event.params, vec![1, 2, 3]);
-        assert_eq!(propose_event.protocol_id.as_slice(), b"onefunc_________________________");
+        assert_eq!(
+            propose_event.protocol_id.as_slice(),
+            b"onefunc_________________________"
+        );
     }
 
     #[test]
@@ -178,8 +195,9 @@ mod test {
             "Deployed program 3cAFEXstVzff2dXH8PFMgm81h8sQgpdskFGZqqoDgQkJ",
             "Program BPFLoaderUpgradeab1e11111111111111111111111 success",
         ];
-        let events: Vec<ProposeEvent> = parse_logs::parse_logs(SAMPLE, &PROGRAM_ID.to_string())
-            .expect("Processing logs should not result in errors");
+        let events: Vec<ProposeEvent> =
+            parse_logs::parse_logs(SAMPLE, "3cAFEXstVzff2dXH8PFMgm81h8sQgpdskFGZqqoDgQkJ")
+                .expect("Processing logs should not result in errors");
         assert!(events.is_empty(), "Expected no events have been met")
     }
 }

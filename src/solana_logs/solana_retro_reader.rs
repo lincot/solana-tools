@@ -40,7 +40,7 @@ impl SolanaRetroReader {
             &solana_config.client.write_rpcs,
         )?;
 
-        let mut tx_read_from = Some(Signature::from_str(&tx_read_from).map_err(|err| {
+        let mut tx_read_from = Some(Signature::from_str(tx_read_from).map_err(|err| {
             error!("Failed to decode tx_start_from: {}", err);
             EventListenerError::SolanaClient
         })?);
