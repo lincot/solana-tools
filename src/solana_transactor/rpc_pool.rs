@@ -1,12 +1,11 @@
 use log::error;
-use solana_client::nonblocking::rpc_client::RpcClient;
+use solana_client::{client_error::reqwest::Url, nonblocking::rpc_client::RpcClient};
 use solana_sdk::commitment_config::CommitmentConfig;
 use std::{
     fmt::Debug,
+    sync::atomic::{AtomicU64, Ordering},
     time::{Duration, UNIX_EPOCH},
 };
-use std::sync::atomic::{AtomicU64, Ordering};
-use solana_client::client_error::reqwest::Url;
 
 use tokio::sync::Mutex;
 
