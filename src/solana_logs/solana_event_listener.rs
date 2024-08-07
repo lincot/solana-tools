@@ -19,10 +19,8 @@ impl SolanaEventListener {
         }
     }
 
-    pub async fn listen_to_solana(&self) -> Result<(), EventListenerError> {
-        self.logs_retro_reader
-            .read_events_backward(self.solana_config.clone())
-            .await
+    pub async fn listen_to_solana(&self, tx_read_from: String) -> Result<(), EventListenerError> {
+        self.logs_retro_reader.read_events_backward(self.solana_config.clone(), tx_read_from).await
     }
 }
 

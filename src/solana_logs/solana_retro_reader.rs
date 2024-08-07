@@ -7,12 +7,13 @@ use solana_client::{
 };
 use solana_sdk::{commitment_config::CommitmentConfig, pubkey::Pubkey, signature::Signature};
 use solana_transaction_status::UiTransactionEncoding;
-use std::time::Duration;
-use std::{collections::VecDeque, str::FromStr};
+use std::{collections::VecDeque, str::FromStr, time::Duration};
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::solana_logs::config::{SolanaClientConfig, SolanaListenerConfig};
-use crate::solana_logs::{EventListenerError, LogsBunch};
+use crate::solana_logs::{
+    config::{SolanaClientConfig, SolanaListenerConfig},
+    EventListenerError, LogsBunch,
+};
 
 pub(super) struct SolanaRetroReader {
     logs_sender: UnboundedSender<LogsBunch>,
@@ -26,21 +27,16 @@ impl SolanaRetroReader {
     pub(super) async fn read_events_backward(
         &self,
         solana_config: SolanaListenerConfig,
+        tx_read_from: String,
     ) -> Result<(), EventListenerError> {
         let program_to_listen =
             Pubkey::from_str(&solana_config.program_listen_to).expect("Expected to be");
-        let tx_read_from = &solana_config.tx_read_from;
 
-        debug!(
-            "Found tx_read_from, start backward reading until: {}",
-            tx_read_from
-        );
-        let rpc_pool = RpcPool::new(
-            &solana_config.client.read_rpcs,
-            &solana_config.client.write_rpcs,
-        )?;
+        debug!("Found tx_read_from, start backward reading until: {}", tx_read_from);
+        let rpc_pool =
+            RpcPool::new(&solana_config.client.read_rpcs, &solana_config.client.write_rpcs)?;
 
-        let mut tx_read_from = Some(Signature::from_str(tx_read_from).map_err(|err| {
+        let mut tx_read_from = Some(Signature::from_str(&tx_read_from).map_err(|err| {
             error!("Failed to decode tx_start_from: {}", err);
             EventListenerError::SolanaClient
         })?);
@@ -94,13 +90,9 @@ impl SolanaRetroReader {
             if !log_bunches.is_empty() {
                 debug!("Logs bunch have gotten: {}", log_bunches.len());
             }
-            next_until = log_bunches
-                .back()
-                .map(|b| Signature::from_str(&b.tx_signature).unwrap());
+            next_until = log_bunches.back().map(|b| Signature::from_str(&b.tx_signature).unwrap());
             for logs_bunch in log_bunches {
-                self.logs_sender
-                    .send(logs_bunch)
-                    .expect("Expected logs_bunch to be sent");
+                self.logs_sender.send(logs_bunch).expect("Expected logs_bunch to be sent");
             }
             tokio::time::sleep(Duration::from_secs(3)).await;
         }
@@ -192,8 +184,7 @@ impl SolanaRetroReader {
                         limit: None,
                         commitment: Some(solana_config.commitment),
                     };
-                    rpc.get_signatures_for_address_with_config(program_id, args)
-                        .await
+                    rpc.get_signatures_for_address_with_config(program_id, args).await
                 },
                 solana_config.commitment,
             )

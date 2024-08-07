@@ -12,9 +12,7 @@ pub struct SolanaClientConfig {
 }
 
 fn deserialize_commitment<'de, D>(deserializer: D) -> Result<CommitmentConfig, D::Error>
-where
-    D: Deserializer<'de>,
-{
+where D: Deserializer<'de> {
     let commitment = CommitmentLevel::deserialize(deserializer)
         .map_err(|err| Error::custom(format!("Malformed commitment: {}", err)))?;
     Ok(CommitmentConfig { commitment })
@@ -26,5 +24,6 @@ pub struct SolanaListenerConfig {
     pub client: SolanaClientConfig,
     #[serde(alias = "txreadfrom")]
     pub tx_read_from: String,
+    pub tx_read_from_force: Option<String>,
     pub program_listen_to: String,
 }
