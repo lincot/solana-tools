@@ -1,16 +1,15 @@
 use log::error;
-use portable_atomic::{AtomicU64, Ordering};
-use solana_client::nonblocking::rpc_client::RpcClient;
+use solana_client::{client_error::reqwest::Url, nonblocking::rpc_client::RpcClient};
 use solana_sdk::commitment_config::CommitmentConfig;
 use std::{
     fmt::Debug,
+    sync::atomic::{AtomicU64, Ordering},
     time::{Duration, UNIX_EPOCH},
 };
 
 use tokio::sync::Mutex;
-use url::Url;
 
-use crate::{config::RpcEntry, round_robin::RoundRobin, TransactorError};
+use super::{config::RpcEntry, round_robin::RoundRobin, TransactorError};
 
 struct Rpc {
     url: Url,
@@ -163,7 +162,7 @@ impl RpcPool {
         loop {
             match self.with_read_rpc(f.clone(), commitment).await {
                 Ok(x) => break x,
-                Err(e) => {
+                Err(_e) => {
                     // log::warn!("RPC error: {:?}", e);
                     i += 1;
                     let n = self.read_rpcs.len() as u64;
@@ -189,7 +188,7 @@ impl RpcPool {
         loop {
             match self.with_write_rpc(f.clone(), commitment).await {
                 Ok(x) => break x,
-                Err(e) => {
+                Err(_e) => {
                     // log::warn!("RPC error: {:?}", e);
                     i += 1;
                     let n = self.write_rpcs.len() as u64;
