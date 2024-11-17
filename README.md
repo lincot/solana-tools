@@ -1,6 +1,6 @@
 <img src="doc/entangle.avif" alt="Entangle" style="width:100%;"/>
 
-# Solana Tools. Transaction processing and log monitoring
+# Solana Tools. Transacting and log monitoring
 
 This project provides a set of tools and utilities to facilitate the creation, management, and execution of transactions 
 on the Solana blockchain. It includes two main components:
