@@ -15,7 +15,7 @@ This repo is supposed to be included as a submodule in the main project, where t
 
 - [Solana transactor](#solana-transactor)
 - [Solana logs](#solana-logs)
-- [Include in your project](#including-in-your-project)
+- [Including in your project](#including-in-your-project)
 - [Changelog](CHANGELOG.md)
 - [Contributing](CONTRIBUTING.md)
 - [License](LICENSE)
