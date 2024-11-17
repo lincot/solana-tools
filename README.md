@@ -10,7 +10,6 @@ on the Solana blockchain. It includes two main components:
 
 This repo is supposed to be included as a submodule in the main project, where the utilities are used.
 
-
 ## Table of Contents
 
 - [Solana transactor](#solana-transactor)
