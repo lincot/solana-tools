@@ -1,6 +1,6 @@
 <img src="doc/entangle.avif" alt="Entangle" style="width:100%;"/>
 
-# Solana Tools. Streamlining Transactions and Event Monitoring
+# Solana Tools. Transaction processing and log monitoring
 
 This project provides a set of tools and utilities to facilitate the creation, management, and execution of transactions 
 on the Solana blockchain. It includes two main components:
@@ -19,8 +19,6 @@ This repo is supposed to be included as a submodule in the main project, where t
 - [Changelog](CHANGELOG.md)
 - [Contributing](CONTRIBUTING.md)
 - [License](LICENSE)
-
-
 
 ## Including in your project
 
