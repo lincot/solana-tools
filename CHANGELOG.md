@@ -5,5 +5,5 @@ transactions on the Solana blockchain.
 
 **Features:**
 
-# Solana logs analyzer is provided 
-# Solana transactor is proveded
+- Solana logs analyzer is provided 
+- Solana transactor is proveded
