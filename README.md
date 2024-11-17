@@ -1,6 +1,6 @@
 <img src="doc/entangle.avif" alt="Entangle" style="width:100%;"/>
 
-# Collection of utilities to send transactions to Solana
+# Solana Tools. Streamlining Transactions and Event Monitoring
 
 This project provides a set of tools and utilities to facilitate the creation, management, and execution of transactions 
 on the Solana blockchain. It includes two main components:
@@ -71,7 +71,6 @@ pub(super) struct CustomProcessor {
 
 impl CustomProcessor {
     fn extend_with_timestamp(&self, instruction_bundles: Vec<InstructionBundle>) {
-        // The main purpose of a transactor with the rpc pool inside is to provide an ability to use alternative one if the main gets un
         let ix =
             Instruction::new_with_bytes(udf_solana::id(), &update_data, accounts);
         let bundle = vec![InstructionBundle::new(ix, 400000)];
