@@ -1,6 +1,6 @@
 <img src="doc/entangle.avif" alt="Entangle" style="width:100%;"/>
 
-# Collection of utilities to send transactions to Solana
+# Solana Tools. Streamlining Transactions and Event Monitoring
 
 This project provides a set of tools and utilities to facilitate the creation, management, and execution of transactions 
 on the Solana blockchain. It includes two main components:
