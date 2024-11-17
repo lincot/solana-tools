@@ -12,9 +12,9 @@ This repo is supposed to be included as a submodule in the main project, where t
 
 ## Table of Contents
 
+- [Including in your project](#including-in-your-project)
 - [Solana transactor](#solana-transactor)
 - [Solana logs](#solana-logs)
-- [Including in your project](#including-in-your-project)
 - [Changelog](CHANGELOG.md)
 - [Contributing](CONTRIBUTING.md)
 - [License](LICENSE)
@@ -124,4 +124,3 @@ impl EventProcessor for MintedEventProcessor {
     }
 }
 ```
-
