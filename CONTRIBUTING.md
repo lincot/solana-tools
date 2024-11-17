@@ -27,16 +27,14 @@ community looks forward to your contributions. 🎉
 
 ## Code of Conduct :police_car:
 
-This project and everyone participating in it is governed by the
-[Entangle Code of Conduct](CODE_OF_CONDUCT.md).
-By participating, you are expected to uphold this code. Please report unacceptable behavior
-to .
+This project and everyone participating in it is governed by the [Entangle Code of Conduct](CODE_OF_CONDUCT.md).
+By participating, you are expected to uphold this code. Please report unacceptable behavior to.
 
 ## I Have a Question :confused:
 
-> If you want to ask a question, we assume that you have read the available [Documentation](Link_To_docs).
+> If you want to ask a question, we assume that you have read the available [Documentation](https://github.com/Entangle-Protocol/solana-tools/blob/main/README.md).
 
-Before you ask a question, it is best to search for existing [Issues](Link_to_issues_with_bug_label_included_in_search)
+Before you ask a question, it is best to search for existing [Issues](https://github.com/Entangle-Protocol/solana-tools/issues)
 that might help you. In case you have found a suitable issue and still need clarification, you can write your question
 in this issue.
 
@@ -65,10 +63,10 @@ following steps in advance to help us fix any potential bug as fast as possible.
 
 - Make sure that you are using the latest version.
 - Determine if your bug is really a bug and not an error on your side e.g. using incompatible environment
-  components/versions (Make sure that you have read the [documentation](Link_To_docs). If you are looking for support,
+  components/versions (Make sure that you have read the [documentation](https://blog.entangle.fi/). If you are looking for support,
   you might want to check [this section](#i-have-a-question)).
 - To see if other users have experienced (and potentially already solved) the same issue you are having, check if there
-  is not already a bug report existing for your bug or error in the [bug tracker](Link_to_issues_with_bug_label).
+  is not already a bug report existing for your bug or error in the [bug tracker](https://github.com/Entangle-Protocol/solana-tools/issues).
 - Collect information about the bug:
 - Stack trace (Traceback)
 - OS, Platform and Version (Windows, Linux, macOS)
@@ -79,12 +77,12 @@ following steps in advance to help us fix any potential bug as fast as possible.
 #### How Do I Submit a Good Bug Report?
 
 > You must never report security related issues, vulnerabilities or bugs including sensitive information to the issue
-> tracker, or elsewhere in public. Instead sensitive bugs must be sent by email
+> tracker, or elsewhere in public. Instead, sensitive bugs must be sent by email
 > to [t.security@entangle.fi](t.security@entangle.fi) with high priority notice.
 
 We use GitHub issues to track bugs and errors. If you run into an issue with the project:
 
-- Open an [Issue](https://github.com/Trillionxyz/issues/new). (Since we can't be sure at this point whether it is a bug
+- Open an [Issue](https://github.com/Entangle-Protocol/solana-tools/issues/new). (Since we can't be sure at this point whether it is a bug
   or not, we ask you not to talk about a bug yet and not to label the issue.)
 - Explain the behavior you would expect and the actual behavior.
 - Please provide as much context as possible and describe the *reproduction steps* that someone else can follow to
@@ -156,16 +154,16 @@ to understand your suggestion and find related suggestions.
 #### Before Submitting an Enhancement
 
 - Make sure that you are using the latest version.
-- Read the [documentation](Link_To_docs) carefully and find out if the functionality is already covered, maybe by an
+- Read the [documentation](https://github.com/Entangle-Protocol/solana-tools/blob/main/README.md) carefully and find out if the functionality is already covered, maybe by an
   individual configuration.
-- Perform a [search](https://github.com/Trillionxyz/issues) to see if the enhancement has already been suggested. If it
+- Perform a [search](https://github.com/Entangle-Protocol/solana-tools/issues) to see if the enhancement has already been suggested. If it
   has, add a comment to the existing issue instead of opening a new one.
 - Find out whether your idea fits with the scope and aims of the project. It's up to you to make a strong case to
   convince the project's developers of the merits of this feature.
 
 #### How Do I Submit a Good Enhancement Suggestion?
 
-Enhancement suggestions are tracked as [GitHub issues](https://github.com/Trillionxyz/issues).
+Enhancement suggestions are tracked as [GitHub issues](https://github.com/Entangle-Protocol/solana-tools/blob/main/README.md).
 
 - Use a **clear and descriptive title** for the issue to identify the suggestion.
 - Provide a **step-by-step description of the suggested enhancement** in as many details as possible.
@@ -216,7 +214,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/Trilli
 
 ### Your First Code Contribution :computer:
 
-All setup information are included in [Readme](), setup section.
+All setup information are included in [Readme](https://github.com/Entangle-Protocol/solana-tools/blob/main/README.md), setup section.
 
 1. Create a fork.
 2. Make an enhancement or bug fix.
@@ -238,7 +236,6 @@ So, example will be following: git commit -m "CC enh: MerchantMoeSynthChef gas o
 
 ### Improving The Documentation :blue_book:
 
-If you want to improve [Documentation](Link_to_docs), please open an issue with a title "Documentation enhancement" and
-describe what you want
-to improve with as many details as possible. You can even propose to improve this file or README.md, if so, still write
+If you want to improve [Documentation](https://github.com/Entangle-Protocol/solana-tools/blob/main/README.md), please open an issue with a title "Documentation enhancement" and
+describe what you want to improve with as many details as possible. You can even propose to improve this file or README.md, if so, still write
 as title "Documentation enhancement"
