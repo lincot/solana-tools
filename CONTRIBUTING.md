@@ -16,7 +16,7 @@ community looks forward to your contributions. 🎉
 
 ## Table of Contents
 
-- [Code of Conduct](#code-of-conduct)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
 - [I Have a Question](#i-have-a-question)
 - [I Want To Contribute](#i-want-to-contribute)
 - [Reporting Bugs](#reporting-bugs)
@@ -25,12 +25,12 @@ community looks forward to your contributions. 🎉
 - [Improving The Documentation](#improving-the-documentation)
 - [Commit Messages](#commit-messages)
 
-## Code of Conduct :police_car:
+## Code of Conduct
 
 This project and everyone participating in it is governed by the [Entangle Code of Conduct](CODE_OF_CONDUCT.md).
 By participating, you are expected to uphold this code. Please report unacceptable behavior to.
 
-## I Have a Question :confused:
+## I Have a Question
 
 > If you want to ask a question, we assume that you have read the available [Documentation](https://github.com/Entangle-Protocol/solana-tools/blob/main/README.md).
 
@@ -53,7 +53,7 @@ We will then take care of the issue as soon as possible.
 > When contributing to this project, you must agree that you have authored 100% of the content, that you have the
 > necessary rights to the content and that the content you contribute may be provided under the project license.
 
-### Reporting Bugs :beetle:
+### Reporting Bugs
 
 #### Before Submitting a Bug Report
 
@@ -145,7 +145,7 @@ Once it's filed:
 > Please note that security-related issues, vulnerabilities, or bugs containing sensitive information should not be
 > reported in the issue tracker. > > Instead, send them by email to t.security@entangle.fi with high priority notice.
 
-### Suggesting Enhancements :trophy:
+### Suggesting Enhancements
 
 This section guides you through submitting an enhancement suggestion for Trillion, **including completely new features
 and minor improvements to existing functionality**. Following these guidelines will help maintainers and the community
@@ -212,7 +212,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/Entang
 > Please provide any additional information or context that might be helpful in understanding and implementing the
 > enhancement.
 
-### Your First Code Contribution :computer:
+### Your First Code Contribution
 
 All setup information are included in [Readme](https://github.com/Entangle-Protocol/solana-tools/blob/main/README.md), setup section.
 
@@ -234,7 +234,7 @@ Commit message should consist of 3 parts:
 
 So, example will be following: git commit -m "CC enh: MerchantMoeSynthChef gas optimization"
 
-### Improving The Documentation :blue_book:
+### Improving The Documentation
 
 If you want to improve [Documentation](https://github.com/Entangle-Protocol/solana-tools/blob/main/README.md), please open an issue with a title "Documentation enhancement" and
 describe what you want to improve with as many details as possible. You can even propose to improve this file or README.md, if so, still write
