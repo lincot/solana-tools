@@ -17,6 +17,7 @@ This repo is supposed to be included as a submodule in the main project, where t
 - [Solana logs](#solana-logs)
 - [Changelog](CHANGELOG.md)
 - [Contributing](CONTRIBUTING.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
 - [License](LICENSE)
 
 ## Including in your project
