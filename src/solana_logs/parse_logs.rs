@@ -1,3 +1,4 @@
+use crate::anchor_lang::{AnchorDeserialize, Discriminator};
 use log::error;
 use regex::Regex;
 
@@ -45,7 +46,7 @@ impl Execution {
     }
 }
 
-pub(crate) fn parse_logs<T: anchor_lang::AnchorDeserialize + anchor_lang::Discriminator>(
+pub(crate) fn parse_logs<T: AnchorDeserialize + Discriminator>(
     logs: &[&str],
     program_id_str: &str,
 ) -> Result<Vec<T>, EventListenerError> {
@@ -80,7 +81,7 @@ pub(crate) fn parse_logs<T: anchor_lang::AnchorDeserialize + anchor_lang::Discri
     Ok(events)
 }
 
-fn handle_program_log<T: anchor_lang::AnchorDeserialize + anchor_lang::Discriminator>(
+fn handle_program_log<T: AnchorDeserialize + Discriminator>(
     self_program_str: &str,
     l: &str,
 ) -> Result<(Option<T>, bool), EventListenerError> {
@@ -91,7 +92,8 @@ fn handle_program_log<T: anchor_lang::AnchorDeserialize + anchor_lang::Discrimin
         .strip_prefix(PROGRAM_LOG)
         .or_else(|| l.strip_prefix(PROGRAM_DATA))
     {
-        let borsh_bytes = match anchor_lang::__private::base64::decode(log) {
+        #[allow(deprecated)]
+        let borsh_bytes = match crate::anchor_lang::__private::base64::decode(log) {
             Ok(borsh_bytes) => borsh_bytes,
             _ => {
                 return Ok((None, false));
@@ -107,7 +109,7 @@ fn handle_program_log<T: anchor_lang::AnchorDeserialize + anchor_lang::Discrimin
         };
         let mut event = None;
         if disc == T::discriminator() {
-            let e: T = anchor_lang::AnchorDeserialize::deserialize(&mut slice).map_err(|err| {
+            let e: T = AnchorDeserialize::deserialize(&mut slice).map_err(|err| {
                 error!("Failed to deserialize event: {}", err);
                 EventListenerError::SolanaParseLogs
             })?;
@@ -143,8 +145,8 @@ fn handle_irrelevant_log(this_program_str: &str, log: &str) -> (Option<String>, 
 
 #[cfg(test)]
 mod test {
+    use crate::anchor_lang::{self, prelude::*};
     use crate::solana_logs::parse_logs;
-    use anchor_lang::prelude::*;
 
     #[event]
     pub struct ProposeEvent {
