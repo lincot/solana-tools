@@ -24,4 +24,3 @@ uuid = { version = "1.10.0", features = ["v4"] }
 
 [features]
 default = ["anchor-lang-0-29"]
-anchor-0-30 = ["anchor-lang-0-30"]
