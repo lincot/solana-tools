@@ -11,7 +11,7 @@ pub enum TransactorError {
     #[error("Transaction bundle is empty")]
     EmptyBundle,
     #[error("Client error {0}")]
-    ClientError(#[from] solana_client::client_error::ClientError),
+    ClientError(#[from] Box<solana_client::client_error::ClientError>),
     #[error("Instruction error {0}")]
     InstructionError(#[from] solana_sdk::instruction::InstructionError),
     #[error("Transaction partial sign failed {0}")]
