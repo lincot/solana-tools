@@ -154,7 +154,7 @@ pub async fn load_alt(
     client: RpcClient,
     address: Pubkey,
 ) -> Result<AddressLookupTableAccount, TransactorError> {
-    let raw_account = client.get_account(&address).await?;
+    let raw_account = client.get_account(&address).await.map_err(Box::new)?;
     let address_lookup_table = AddressLookupTable::deserialize(&raw_account.data)?;
     Ok(AddressLookupTableAccount {
         key: address,
