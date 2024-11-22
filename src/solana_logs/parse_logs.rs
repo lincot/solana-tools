@@ -102,18 +102,14 @@ fn handle_program_log<T: AnchorDeserialize + Discriminator>(
             return Ok((None, false));
         };
 
-        let Some((disc, mut data)) = borsh_bytes.split_at_checked(8) else {
+        if borsh_bytes.get(..8) != Some(&T::discriminator()) {
             return Ok((None, false));
         };
 
-        let event = if disc == T::discriminator() {
-            Some(T::deserialize(&mut data).map_err(|err| {
-                error!("Failed to deserialize event: {}", err);
-                EventListenerError::SolanaParseLogs
-            })?)
-        } else {
-            None
-        };
+        let event = Some(T::deserialize(&mut &borsh_bytes[8..]).map_err(|err| {
+            error!("Failed to deserialize event: {}", err);
+            EventListenerError::SolanaParseLogs
+        })?);
         Ok((event, false))
     } else {
         Ok((None, is_program_end(l)))
