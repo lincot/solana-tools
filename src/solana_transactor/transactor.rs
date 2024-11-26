@@ -71,6 +71,12 @@ struct FinalizationTask {
 }
 
 #[derive(Clone)]
+pub struct TxResult {
+    pub signature: Signature,
+    pub status: Result<(), TransactionError>,
+}
+
+#[derive(Clone)]
 pub struct SolanaTransactor {
     rpc_pool: RpcPool,
     finalize_channel: Arc<UnboundedSender<ChannelMessage>>,
@@ -147,7 +153,7 @@ impl SolanaTransactor {
         log_ctx: Option<T>,
         bundle: &MessageBundle,
         id: Uuid,
-    ) -> Result<(Signature, Result<(), TransactionError>), TransactorError> {
+    ) -> Result<TxResult, TransactorError> {
         let mut current_blockhash = self.get_blockhash().await;
         let mut queue = HashMap::new();
         let start = Instant::now();
@@ -219,7 +225,7 @@ impl SolanaTransactor {
                         signature,
                         start.elapsed().as_secs()
                     );
-                    return Ok((signature, status));
+                    return Ok(TxResult { signature, status });
                 }
                 tokio::time::sleep(Duration::from_millis(700)).await;
             }
@@ -319,7 +325,7 @@ impl SolanaTransactor {
         start: Instant,
         finalize: bool,
         finalize_channel: Arc<UnboundedSender<ChannelMessage>>,
-    ) -> Result<(Signature, Result<(), TransactionError>), TransactorError> {
+    ) -> Result<TxResult, TransactorError> {
         let res = self
             .send_with_level_confirmed(log_ctx.clone(), &bundle, id)
             .await?;
@@ -327,7 +333,7 @@ impl SolanaTransactor {
             finalize_channel
                 .send(ChannelMessage::Task(FinalizationTask {
                     log_ctx: log_ctx.map(|c| c.to_string()),
-                    signature: res.0,
+                    signature: res.signature,
                     bundle,
                     id,
                     start,
@@ -342,7 +348,7 @@ impl SolanaTransactor {
         log_ctx: Option<T>,
         bundles: &[MessageBundle],
         finalize: bool,
-    ) -> Result<Vec<(Signature, Result<(), TransactionError>)>, TransactorError> {
+    ) -> Result<Vec<TxResult>, TransactorError> {
         bundles
             .iter()
             .map(|bundle| {
@@ -372,7 +378,7 @@ impl SolanaTransactor {
         alt: &[AddressLookupTableAccount],
         compute_unit_price: Option<u64>,
         finalize: bool,
-    ) -> Result<Vec<(Signature, Result<(), TransactionError>)>, TransactorError> {
+    ) -> Result<Vec<TxResult>, TransactorError> {
         let mut ix_compiler = IxCompiler::new(payer, compute_unit_price);
         let messages: Result<Vec<_>, TransactorError> = instructions
             .iter()
