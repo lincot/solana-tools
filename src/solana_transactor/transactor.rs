@@ -1,7 +1,7 @@
 #![allow(clippy::large_enum_variant)]
 #![allow(clippy::too_many_arguments)]
 
-use futures::{stream::FuturesOrdered, StreamExt, TryStreamExt};
+use futures::{StreamExt, TryStreamExt};
 use solana_client::rpc_config::RpcSendTransactionConfig;
 use solana_sdk::{
     address_lookup_table_account::AddressLookupTableAccount,
@@ -338,9 +338,8 @@ impl SolanaTransactor {
         bundles: &[MessageBundle],
         finalize: bool,
     ) -> Result<Vec<TxResult>, TransactorError> {
-        bundles
-            .iter()
-            .map(|bundle| {
+        futures::stream::iter(bundles)
+            .then(|bundle| {
                 let log_ctx = log_ctx.clone();
                 let bundle = bundle.clone();
                 let id = Uuid::new_v4();
@@ -351,7 +350,6 @@ impl SolanaTransactor {
                     self.send_bundle(log_ctx, bundle, id, start, finalize, finalize_channel).await
                 }
             })
-            .collect::<FuturesOrdered<_>>()
             .try_collect()
             .await
     }
