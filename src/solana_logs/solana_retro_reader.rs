@@ -90,7 +90,6 @@ impl SolanaRetroReader {
             if !log_bunches.is_empty() {
                 debug!("Logs bunch have gotten: {}", log_bunches.len());
             }
-            next_until = log_bunches.back().map(|b| Signature::from_str(&b.tx_signature).unwrap());
             for logs_bunch in log_bunches {
                 self.logs_sender.send(logs_bunch).expect("Expected logs_bunch to be sent");
             }
