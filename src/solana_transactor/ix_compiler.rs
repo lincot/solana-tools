@@ -142,7 +142,7 @@ impl IxCompiler {
         }
         self.ix_buffer.push(ix);
         self.address_lookup_table_accounts.extend_from_slice(address_lookup_table_accounts);
-        self.total_compute_units += total_compute_units;
+        self.total_compute_units = total_compute_units;
         Ok(None)
     }
 
