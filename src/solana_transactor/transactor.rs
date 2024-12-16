@@ -4,7 +4,7 @@
 use futures::{stream::FuturesOrdered, StreamExt, TryStreamExt};
 use solana_client::rpc_config::RpcSendTransactionConfig;
 use solana_sdk::{
-    address_lookup_table_account::AddressLookupTableAccount,
+    address_lookup_table::AddressLookupTableAccount,
     commitment_config::CommitmentConfig,
     hash::Hash,
     message::VersionedMessage,
