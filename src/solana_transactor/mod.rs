@@ -5,7 +5,9 @@ mod config;
 mod error;
 pub mod ix_compiler;
 mod round_robin;
-mod rpc_pool;
+mod round_robin_blocking;
+pub mod rpc_pool;
+pub mod rpc_pool_blocking;
 mod transactor;
 
 pub use config::*;
