@@ -91,7 +91,6 @@ impl RpcPoolBlocking {
             Duration::from_secs(3),
             commitment,
         );
-        //Self::set_client_rpc_version(&mut rpc_version, &rpc.url, &client);
         let res = f(client);
         rpc.last_accessed.store(now(), Ordering::Release);
         // rpc_version should be locked until `f` has completed
@@ -122,44 +121,12 @@ impl RpcPoolBlocking {
             Duration::from_secs(3),
             commitment,
         );
-        //Self::set_client_rpc_version(&mut rpc_version, &rpc.url, &client);
         let res = f(client);
         rpc.last_accessed.store(now(), Ordering::Release);
         // rpc_version should be locked until `f` has completed
         drop(rpc_version);
         res
     }
-
-    /// Blocking RPC doesnt have set_node_version
-    /*fn set_client_rpc_version(
-        rpc_version: &mut Option<semver::Version>,
-        rpc_url: &Url,
-        client: &RpcClient,
-    ) {
-        if rpc_version.is_none() {
-            let Ok(version) = client.get_version().await.map_err(|err| {
-                error!(
-                    "Failed to get version from rpc to cache: {}, error: {}",
-                    rpc_url, err
-                )
-            }) else {
-                return;
-            };
-            let Ok(version) = semver::Version::parse(&version.solana_core).map_err(|err| {
-                error!(
-                    "Failed to parse version from: {}, error: {}",
-                    version.solana_core, err
-                )
-            }) else {
-                return;
-            };
-            rpc_version.replace(version);
-        }
-        let version = rpc_version.clone().expect("Expected to be set");
-        client
-            .set_node_version(version)
-            .expect("Expected version to be updated well for http client");
-    }*/
 
     pub fn with_read_rpc_loop<F, O, E>(&self, f: F, commitment: CommitmentConfig) -> O
     where
