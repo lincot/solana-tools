@@ -72,7 +72,7 @@ impl IxCompiler {
         let msg = Message::try_compile(
             &self.payer,
             &[
-                &get_compute_units_ix_if_any(compute_units),
+                &get_cu_limit_ix_if_any(compute_units, 1),
                 &self.get_ix_price_if_any()[..],
                 &[ix.clone()],
             ]
@@ -88,7 +88,7 @@ impl IxCompiler {
 
         let total_compute_units = self.total_compute_units + compute_units;
         let ix_buffer = [
-            &get_compute_units_ix_if_any(total_compute_units),
+            &get_cu_limit_ix_if_any(total_compute_units, self.ix_buffer.len() as u32 + 1),
             &self.get_ix_price_if_any()[..],
             &self.ix_buffer[..],
             &[ix.clone()],
@@ -120,7 +120,7 @@ impl IxCompiler {
             let msg = Message::try_compile(
                 &self.payer,
                 &[
-                    &get_compute_units_ix_if_any(self.total_compute_units),
+                    &get_cu_limit_ix_if_any(self.total_compute_units, self.ix_buffer.len() as u32),
                     &self.get_ix_price_if_any()[..],
                     &self.ix_buffer[..],
                 ]
@@ -154,7 +154,7 @@ impl IxCompiler {
         let msg = Message::try_compile(
             &self.payer,
             &[
-                &get_compute_units_ix_if_any(self.total_compute_units),
+                &get_cu_limit_ix_if_any(self.total_compute_units, self.ix_buffer.len() as u32),
                 &self.get_ix_price_if_any()[..],
                 &self.ix_buffer[..],
             ]
@@ -179,8 +179,8 @@ fn approaches_limits(msg_len: usize, compute_units: u32) -> bool {
     msg_len >= MAX_MSG_LEN - 32 || compute_units >= MAX_CU - 200_000
 }
 
-fn get_compute_units_ix_if_any(compute_units: u32) -> Vec<Instruction> {
-    if compute_units <= DEFAULT_CU {
+fn get_cu_limit_ix_if_any(compute_units: u32, num_non_compute_budget_ixs: u32) -> Vec<Instruction> {
+    if compute_units <= DEFAULT_CU * num_non_compute_budget_ixs {
         return Vec::new();
     }
     vec![ComputeBudgetInstruction::set_compute_unit_limit(
