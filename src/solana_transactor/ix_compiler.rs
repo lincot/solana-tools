@@ -8,7 +8,7 @@ use solana_sdk::{
 };
 use std::fmt::Display;
 
-use super::{ TransactorError};
+use super::TransactorError;
 use crate::log_with_ctx;
 
 const MAX_CU: u32 = 1_400_000;

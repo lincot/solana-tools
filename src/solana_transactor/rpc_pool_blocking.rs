@@ -69,23 +69,16 @@ impl RpcPoolBlocking {
     }
 
     pub fn with_read_rpc<F, T>(&self, f: F, commitment: CommitmentConfig) -> T
-    where
-        F: FnOnce(RpcClient) -> T,
-    {
+    where F: FnOnce(RpcClient) -> T {
         let _now = now();
         let (rpc, elapsed) = self
             .read_rpcs
             .pull_by_max(|x| _now - x.last_accessed.load(Ordering::Acquire))
             .expect("Empty round robin pool");
         if elapsed < rpc.min_timeout.as_millis() as u64 {
-            std::thread::sleep(Duration::from_millis(
-                rpc.min_timeout.as_millis() as u64 - elapsed,
-            ));
+            std::thread::sleep(Duration::from_millis(rpc.min_timeout.as_millis() as u64 - elapsed));
         }
-        let rpc_version = rpc
-            .cached_version
-            .lock()
-            .expect("Failed to lock rpc_version");
+        let rpc_version = rpc.cached_version.lock().expect("Failed to lock rpc_version");
         let client = RpcClient::new_with_timeout_and_commitment(
             rpc.url.to_string(),
             Duration::from_secs(3),
@@ -99,23 +92,16 @@ impl RpcPoolBlocking {
     }
 
     pub fn with_write_rpc<F, T>(&self, f: F, commitment: CommitmentConfig) -> T
-    where
-        F: FnOnce(RpcClient) -> T,
-    {
+    where F: FnOnce(RpcClient) -> T {
         let _now = now();
         let (rpc, elapsed) = self
             .write_rpcs
             .pull_by_max(|x| _now - x.last_accessed.load(Ordering::Acquire))
             .expect("Empty round robin pool");
         if elapsed < rpc.min_timeout.as_millis() as u64 {
-            std::thread::sleep(Duration::from_millis(
-                rpc.min_timeout.as_millis() as u64 - elapsed,
-            ));
+            std::thread::sleep(Duration::from_millis(rpc.min_timeout.as_millis() as u64 - elapsed));
         }
-        let rpc_version = rpc
-            .cached_version
-            .lock()
-            .expect("Failed to lock rpc.cached_version");
+        let rpc_version = rpc.cached_version.lock().expect("Failed to lock rpc.cached_version");
         let client = RpcClient::new_with_timeout_and_commitment(
             rpc.url.to_string(),
             Duration::from_secs(3),

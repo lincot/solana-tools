@@ -88,10 +88,7 @@ fn handle_program_log<T: AnchorDeserialize + Discriminator>(
     const PROGRAM_LOG: &str = "Program log: ";
     const PROGRAM_DATA: &str = "Program data: ";
 
-    if let Some(log) = l
-        .strip_prefix(PROGRAM_LOG)
-        .or_else(|| l.strip_prefix(PROGRAM_DATA))
-    {
+    if let Some(log) = l.strip_prefix(PROGRAM_LOG).or_else(|| l.strip_prefix(PROGRAM_DATA)) {
         #[allow(deprecated)]
         let borsh_bytes = match crate::anchor_lang::__private::base64::decode(log) {
             Ok(borsh_bytes) => borsh_bytes,
@@ -145,8 +142,10 @@ fn handle_irrelevant_log(this_program_str: &str, log: &str) -> (Option<String>, 
 
 #[cfg(test)]
 mod test {
-    use crate::anchor_lang::{self, prelude::*};
-    use crate::solana_logs::parse_logs;
+    use crate::{
+        anchor_lang::{self, prelude::*},
+        solana_logs::parse_logs,
+    };
 
     #[event]
     pub struct ProposeEvent {
@@ -180,10 +179,7 @@ mod test {
         let propose_event = events.first().expect("No events caught");
         assert_eq!(propose_event.dst_chain_id, 33133);
         assert_eq!(propose_event.params, vec![1, 2, 3]);
-        assert_eq!(
-            propose_event.protocol_id.as_slice(),
-            b"onefunc_________________________"
-        );
+        assert_eq!(propose_event.protocol_id.as_slice(), b"onefunc_________________________");
     }
 
     #[test]
