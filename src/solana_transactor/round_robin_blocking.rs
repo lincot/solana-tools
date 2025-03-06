@@ -13,10 +13,8 @@ impl<T> RoundRobinBlocking<T> {
         }
     }
 
-    pub fn pull_by_max<'a, F>(&'a self, func: F) -> Option<(&T, u64)>
-    where
-        F: Fn(&'a T) -> u64,
-    {
+    pub fn pull_by_max<'a, F>(&'a self, func: F) -> Option<(&'a T, u64)>
+    where F: Fn(&'a T) -> u64 {
         let mut current_max = 0;
         let mut current_index = 0;
         for i in 0..self.pool.len() {
@@ -26,10 +24,8 @@ impl<T> RoundRobinBlocking<T> {
                 current_max = x;
             }
         }
-        let mut current_index_handle = self
-            .current_index
-            .lock()
-            .expect("Failed to lock current_index");
+        let mut current_index_handle =
+            self.current_index.lock().expect("Failed to lock current_index");
         *current_index_handle = (current_index + 1) % self.pool.len();
         Some((self.pool.get(current_index)?, current_max))
     }

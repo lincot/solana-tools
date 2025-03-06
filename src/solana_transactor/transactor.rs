@@ -30,13 +30,11 @@ use uuid::Uuid;
 
 use super::{
     ix_compiler::{InstructionBundle, IxCompiler},
-
     rpc_pool::RpcPool,
     TransactorError,
 };
 
 use crate::log_with_ctx;
-
 
 #[derive(Clone)]
 pub struct MessageBundle {
