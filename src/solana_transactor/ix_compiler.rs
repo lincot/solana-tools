@@ -11,6 +11,7 @@ use std::fmt::Display;
 use super::TransactorError;
 use crate::log_with_ctx;
 
+const DEFAULT_CU: u32 = 200_000;
 const MAX_CU: u32 = 1_400_000;
 const MAX_MSG_LEN: usize = 1232 - 65; // assuming only one signature
 
@@ -71,7 +72,7 @@ impl IxCompiler {
         let msg = Message::try_compile(
             &self.payer,
             &[
-                &[get_compute_units_ix(compute_units)],
+                &get_cu_limit_ix(compute_units, 1),
                 &self.get_ix_price_if_any()[..],
                 &[ix.clone()],
             ]
@@ -87,7 +88,7 @@ impl IxCompiler {
 
         let total_compute_units = self.total_compute_units + compute_units;
         let ix_buffer = [
-            &[get_compute_units_ix(total_compute_units)],
+            &get_cu_limit_ix(total_compute_units, self.ix_buffer.len() + 1),
             &self.get_ix_price_if_any()[..],
             &self.ix_buffer[..],
             &[ix.clone()],
@@ -119,7 +120,7 @@ impl IxCompiler {
             let msg = Message::try_compile(
                 &self.payer,
                 &[
-                    &[get_compute_units_ix(self.total_compute_units)],
+                    &get_cu_limit_ix(self.total_compute_units, self.ix_buffer.len()),
                     &self.get_ix_price_if_any()[..],
                     &self.ix_buffer[..],
                 ]
@@ -153,7 +154,7 @@ impl IxCompiler {
         let msg = Message::try_compile(
             &self.payer,
             &[
-                &[get_compute_units_ix(self.total_compute_units)],
+                &get_cu_limit_ix(self.total_compute_units, self.ix_buffer.len()),
                 &self.get_ix_price_if_any()[..],
                 &self.ix_buffer[..],
             ]
@@ -175,11 +176,23 @@ fn exceeds_limits(msg_len: usize, compute_units: u32) -> bool {
 
 /// Returns true if tx approaches limits
 fn approaches_limits(msg_len: usize, compute_units: u32) -> bool {
-    msg_len >= MAX_MSG_LEN - 32 || compute_units >= MAX_CU - 200_000
+    msg_len >= MAX_MSG_LEN - 32 || compute_units >= MAX_CU - DEFAULT_CU
 }
 
-fn get_compute_units_ix(compute_units: u32) -> Instruction {
-    ComputeBudgetInstruction::set_compute_unit_limit(compute_units)
+/// Returns a vector containing the CU (compute unit) limit instruction if the
+/// requested CU exceed the default allocation, otherwise returns an empty
+/// vector.
+///
+/// The default CU allocation is calculated based on the number of the top-level
+/// instructions that are not invocations of the Compute Budget program
+/// (`regular_ix_count`).
+fn get_cu_limit_ix(compute_units: u32, regular_ix_count: usize) -> Vec<Instruction> {
+    if compute_units <= DEFAULT_CU * regular_ix_count as u32 {
+        return Vec::new();
+    }
+    vec![ComputeBudgetInstruction::set_compute_unit_limit(
+        compute_units,
+    )]
 }
 
 #[cfg(test)]
