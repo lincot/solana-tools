@@ -108,7 +108,12 @@ fn handle_program_log<T: AnchorDeserialize + Discriminator>(
             disc
         };
         let mut event = None;
-        if disc == T::discriminator() {
+
+        #[cfg(feature = "anchor-lang-0-31")]
+        let disc_matches = disc == T::DISCRIMINATOR;
+        #[cfg(not(feature = "anchor-lang-0-31"))]
+        let disc_matches = disc == T::discriminator();
+        if disc_matches {
             let e: T = AnchorDeserialize::deserialize(&mut slice).map_err(|err| {
                 error!("Failed to deserialize event: {}", err);
                 EventListenerError::SolanaParseLogs
