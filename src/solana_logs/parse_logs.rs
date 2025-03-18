@@ -97,22 +97,21 @@ fn handle_program_log<T: AnchorDeserialize + Discriminator>(
             }
         };
 
-        let mut slice: &[u8] = &borsh_bytes[..];
-        let disc: [u8; 8] = {
-            let mut disc = [0; 8];
-            disc.copy_from_slice(&borsh_bytes[..8]);
-            slice = &slice[8..];
-            disc
+        #[cfg(feature = "anchor-lang-0-31")]
+        let expected_discriminator = T::DISCRIMINATOR;
+        #[cfg(not(feature = "anchor-lang-0-31"))]
+        let expected_discriminator = &T::discriminator();
+
+        let Some(event_bytes) = borsh_bytes.strip_prefix(expected_discriminator) else {
+            return Ok((None, false));
         };
-        let mut event = None;
-        if disc == T::discriminator() {
-            let e: T = AnchorDeserialize::deserialize(&mut slice).map_err(|err| {
-                error!("Failed to deserialize event: {}", err);
-                EventListenerError::SolanaParseLogs
-            })?;
-            event = Some(e);
-        }
-        Ok((event, false))
+
+        let event: T = AnchorDeserialize::deserialize(&mut &event_bytes[..]).map_err(|err| {
+            error!("Failed to deserialize event: {}", err);
+            EventListenerError::SolanaParseLogs
+        })?;
+
+        Ok((Some(event), false))
     } else {
         let (_program, did_pop) = handle_irrelevant_log(self_program_str, l);
         Ok((None, did_pop))
