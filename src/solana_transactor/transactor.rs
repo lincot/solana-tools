@@ -207,9 +207,8 @@ impl SolanaTransactor {
                     queue.remove(&signature);
                     continue;
                 }
-                if let Some(status) = self
-                    .get_tx_status(&signature, CommitmentConfig::confirmed())
-                    .await
+                if let Some(status) =
+                    self.get_tx_status(&signature, CommitmentConfig::confirmed()).await
                 {
                     log_with_ctx!(
                         debug,
@@ -278,17 +277,9 @@ impl SolanaTransactor {
                 Ok(None) => {}
             }
         }
-        log_with_ctx!(
-            warn,
-            log_ctx,
-            "Failed to finalize bundle {} tx {}",
-            id,
-            signature
-        );
+        log_with_ctx!(warn, log_ctx, "Failed to finalize bundle {} tx {}", id, signature);
         let c = self.finalize_channel.clone();
-        let _ = self
-            .send_bundle(log_ctx, bundle, id, start, true, c)
-            .await?;
+        let _ = self.send_bundle(log_ctx, bundle, id, start, true, c).await?;
         Ok(())
     }
 
@@ -320,9 +311,7 @@ impl SolanaTransactor {
         finalize: bool,
         finalize_channel: Arc<UnboundedSender<ChannelMessage>>,
     ) -> Result<(Signature, Result<(), TransactionError>), TransactorError> {
-        let res = self
-            .send_with_level_confirmed(log_ctx.clone(), &bundle, id)
-            .await?;
+        let res = self.send_with_level_confirmed(log_ctx.clone(), &bundle, id).await?;
         if finalize {
             finalize_channel
                 .send(ChannelMessage::Task(FinalizationTask {
@@ -353,8 +342,7 @@ impl SolanaTransactor {
                 let finalize_channel = self.finalize_channel.clone();
 
                 async move {
-                    self.send_bundle(log_ctx, bundle, id, start, finalize, finalize_channel)
-                        .await
+                    self.send_bundle(log_ctx, bundle, id, start, finalize, finalize_channel).await
                 }
             })
             .collect::<FuturesOrdered<_>>()
@@ -378,12 +366,7 @@ impl SolanaTransactor {
             .iter()
             .filter_map(|ix| {
                 ix_compiler
-                    .compile(
-                        log_ctx.clone(),
-                        ix.instruction.clone(),
-                        alt,
-                        ix.compute_units,
-                    )
+                    .compile(log_ctx.clone(), ix.instruction.clone(), alt, ix.compute_units)
                     .transpose()
             })
             .collect();
@@ -396,11 +379,9 @@ impl SolanaTransactor {
             let log_ctx = log_ctx.clone();
             async move {
                 let bundle = MessageBundle::new(&msg, signers, payer);
-                self.send(log_ctx, &[bundle], finalize).await.map(|v| {
-                    v.into_iter()
-                        .next()
-                        .expect("Expected \"send\" to contain one result")
-                })
+                self.send(log_ctx, &[bundle], finalize)
+                    .await
+                    .map(|v| v.into_iter().next().expect("Expected \"send\" to contain one result"))
             }
         }))
         .buffer_unordered(parallel_limit)
@@ -410,9 +391,7 @@ impl SolanaTransactor {
 
     pub async fn await_all_tx(&self) {
         if let Some(handle) = self.handle.lock().await.take() {
-            self.finalize_channel
-                .send(ChannelMessage::Stop)
-                .expect("Channel error");
+            self.finalize_channel.send(ChannelMessage::Stop).expect("Channel error");
             self.finalize_channel.closed().await;
             handle.await.expect("Await handle error");
         }

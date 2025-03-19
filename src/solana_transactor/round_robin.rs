@@ -25,9 +25,7 @@ impl<T> RoundRobin<T> {
     }
 
     pub async fn pull_by_max<'a, F>(&'a self, func: F) -> Option<(&T, u64)>
-    where
-        F: Fn(&'a T) -> u64,
-    {
+    where F: Fn(&'a T) -> u64 {
         let mut current_max = 0;
         let mut current_index = 0;
         for i in 0..self.pool.len() {

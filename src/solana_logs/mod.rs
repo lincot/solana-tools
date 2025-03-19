@@ -2,16 +2,15 @@ use log::error;
 
 use thiserror::Error;
 
-
+pub(crate) mod config;
 pub mod event_processor;
 pub(crate) mod parse_logs;
 pub mod solana_event_listener;
 pub(crate) mod solana_retro_reader;
-pub(crate) mod config;
 
-pub use solana_event_listener::LogsBunch;
-pub use event_processor::EventProcessor;
 pub use config::{SolanaClientConfig, SolanaListenerConfig};
+pub use event_processor::EventProcessor;
+pub use solana_event_listener::LogsBunch;
 
 use crate::solana_transactor::TransactorError;
 

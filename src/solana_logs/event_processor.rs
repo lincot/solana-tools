@@ -27,12 +27,7 @@ pub trait EventProcessor {
         }
 
         for event in events {
-            self.on_event(
-                event,
-                &logs_bunch.tx_signature,
-                logs_bunch.slot,
-                logs_bunch.need_check,
-            );
+            self.on_event(event, &logs_bunch.tx_signature, logs_bunch.slot, logs_bunch.need_check);
         }
     }
 
