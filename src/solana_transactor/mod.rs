@@ -1,5 +1,3 @@
-#[macro_use]
-
 pub mod alt_manager;
 mod config;
 mod error;
