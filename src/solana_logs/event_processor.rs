@@ -1,4 +1,4 @@
-use crate::anchor_lang::{prelude::borsh::BorshDeserialize, Discriminator};
+use anchor_lang::{prelude::borsh::BorshDeserialize, Discriminator};
 use log::debug;
 use solana_sdk::pubkey::Pubkey;
 

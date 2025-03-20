@@ -1,16 +1,21 @@
 use log::debug;
 use std::{collections::HashSet, time::Duration};
 
-use solana_address_lookup_table_program::{
-    instruction::{
-        close_lookup_table, create_lookup_table, deactivate_lookup_table, extend_lookup_table,
-    },
-    state::AddressLookupTable,
-};
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::{
-    address_lookup_table_account::AddressLookupTableAccount, commitment_config::CommitmentConfig,
-    instruction::AccountMeta, pubkey::Pubkey, signature::Keypair, signer::Signer, system_program,
+    address_lookup_table::{
+        instruction::{
+            close_lookup_table, create_lookup_table, deactivate_lookup_table, extend_lookup_table,
+        },
+        state::AddressLookupTable,
+        AddressLookupTableAccount,
+    },
+    commitment_config::CommitmentConfig,
+    instruction::AccountMeta,
+    pubkey::Pubkey,
+    signature::Keypair,
+    signer::Signer,
+    system_program,
 };
 
 use super::{ix_compiler::InstructionBundle, SolanaTransactor, TransactorError};
