@@ -2,10 +2,7 @@ use solana_client::{client_error::reqwest::Url, rpc_client::RpcClient};
 use solana_sdk::commitment_config::CommitmentConfig;
 use std::{
     fmt::Debug,
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Mutex,
-    },
+    sync::atomic::{AtomicU64, Ordering},
     time::{Duration, UNIX_EPOCH},
 };
 
@@ -15,7 +12,6 @@ struct RpcBlocking {
     url: Url,
     last_accessed: AtomicU64,
     min_timeout: Duration,
-    cached_version: Mutex<Option<semver::Version>>,
 }
 
 #[derive(Clone)]
@@ -41,7 +37,6 @@ impl RpcPoolBlocking {
                         .url
                         .parse()
                         .map_err(|_| TransactorError::InvalidRpc(rpc_config.url.clone()))?,
-                    cached_version: Mutex::default(),
                     last_accessed: AtomicU64::new(now()),
                     min_timeout,
                 })
@@ -56,7 +51,6 @@ impl RpcPoolBlocking {
                         .url
                         .parse()
                         .map_err(|_| TransactorError::InvalidRpc(rpc_config.url.clone()))?,
-                    cached_version: Mutex::default(),
                     last_accessed: AtomicU64::new(now()),
                     min_timeout,
                 })
@@ -78,7 +72,6 @@ impl RpcPoolBlocking {
         if elapsed < rpc.min_timeout.as_millis() as u64 {
             std::thread::sleep(Duration::from_millis(rpc.min_timeout.as_millis() as u64 - elapsed));
         }
-        let rpc_version = rpc.cached_version.lock().expect("Failed to lock rpc_version");
         let client = RpcClient::new_with_timeout_and_commitment(
             rpc.url.to_string(),
             Duration::from_secs(3),
@@ -86,8 +79,6 @@ impl RpcPoolBlocking {
         );
         let res = f(client);
         rpc.last_accessed.store(now(), Ordering::Release);
-        // rpc_version should be locked until `f` has completed
-        drop(rpc_version);
         res
     }
 
@@ -101,7 +92,6 @@ impl RpcPoolBlocking {
         if elapsed < rpc.min_timeout.as_millis() as u64 {
             std::thread::sleep(Duration::from_millis(rpc.min_timeout.as_millis() as u64 - elapsed));
         }
-        let rpc_version = rpc.cached_version.lock().expect("Failed to lock rpc.cached_version");
         let client = RpcClient::new_with_timeout_and_commitment(
             rpc.url.to_string(),
             Duration::from_secs(3),
@@ -109,8 +99,6 @@ impl RpcPoolBlocking {
         );
         let res = f(client);
         rpc.last_accessed.store(now(), Ordering::Release);
-        // rpc_version should be locked until `f` has completed
-        drop(rpc_version);
         res
     }
 

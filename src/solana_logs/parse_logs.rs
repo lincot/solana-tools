@@ -1,4 +1,5 @@
-use crate::anchor_lang::{AnchorDeserialize, Discriminator};
+use anchor_lang::{AnchorDeserialize, Discriminator};
+use base64::prelude::*;
 use log::error;
 use regex::Regex;
 
@@ -89,20 +90,14 @@ fn handle_program_log<T: AnchorDeserialize + Discriminator>(
     const PROGRAM_DATA: &str = "Program data: ";
 
     if let Some(log) = l.strip_prefix(PROGRAM_LOG).or_else(|| l.strip_prefix(PROGRAM_DATA)) {
-        #[allow(deprecated)]
-        let borsh_bytes = match crate::anchor_lang::__private::base64::decode(log) {
+        let borsh_bytes = match BASE64_STANDARD.decode(log) {
             Ok(borsh_bytes) => borsh_bytes,
             _ => {
                 return Ok((None, false));
             }
         };
 
-        #[cfg(feature = "anchor-lang-0-31")]
-        let expected_discriminator = T::DISCRIMINATOR;
-        #[cfg(not(feature = "anchor-lang-0-31"))]
-        let expected_discriminator = &T::discriminator();
-
-        let Some(event_bytes) = borsh_bytes.strip_prefix(expected_discriminator) else {
+        let Some(event_bytes) = borsh_bytes.strip_prefix(T::DISCRIMINATOR) else {
             return Ok((None, false));
         };
 
@@ -141,10 +136,8 @@ fn handle_irrelevant_log(this_program_str: &str, log: &str) -> (Option<String>, 
 
 #[cfg(test)]
 mod test {
-    use crate::{
-        anchor_lang::{self, prelude::*},
-        solana_logs::parse_logs,
-    };
+    use crate::solana_logs::parse_logs;
+    use anchor_lang::{self, prelude::*};
 
     #[event]
     pub struct ProposeEvent {

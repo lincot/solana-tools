@@ -127,7 +127,7 @@ async fn main() {
             let mut instructions = Vec::new();
             let mut alts: HashMap<
                 solana_sdk::pubkey::Pubkey,
-                solana_sdk::address_lookup_table_account::AddressLookupTableAccount,
+                solana_sdk::address_lookup_table::AddressLookupTableAccount,
             > = HashMap::new();
             for tx in iter {
                 println!("Signatures: {:?}", tx.signatures);
