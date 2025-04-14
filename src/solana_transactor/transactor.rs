@@ -10,7 +10,7 @@ use solana_sdk::{
     message::VersionedMessage,
     pubkey::Pubkey,
     signature::{Keypair, Signature},
-    transaction::{TransactionError, VersionedTransaction},
+    transaction::{self, VersionedTransaction},
 };
 use std::{
     collections::HashMap,
@@ -73,7 +73,7 @@ struct FinalizationTask {
 #[derive(Clone)]
 pub struct TxResult {
     pub signature: Signature,
-    pub status: Result<(), TransactionError>,
+    pub status: transaction::Result<()>,
 }
 
 #[derive(Clone)]
@@ -124,7 +124,7 @@ impl SolanaTransactor {
         &self,
         signature: &Signature,
         commitment: CommitmentConfig,
-    ) -> Option<Result<(), TransactionError>> {
+    ) -> Option<transaction::Result<()>> {
         loop {
             match self
                 .rpc_pool
