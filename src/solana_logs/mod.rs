@@ -8,7 +8,7 @@ pub(crate) mod parse_logs;
 pub mod solana_event_listener;
 pub(crate) mod solana_retro_reader;
 
-pub use config::{SolanaClientConfig, SolanaListenerConfig};
+pub use config::SolanaClientConfig;
 pub use event_processor::EventProcessor;
 pub use solana_event_listener::LogsBunch;
 
