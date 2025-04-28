@@ -19,13 +19,15 @@ const MAX_MSG_LEN: usize = 1232 - 65; // assuming only one signature
 pub struct InstructionBundle {
     pub instruction: Instruction,
     pub compute_units: u32,
+    pub heap_frame: Option<u32>,
 }
 
 impl InstructionBundle {
-    pub fn new(instruction: Instruction, compute_units: u32) -> Self {
+    pub fn new(instruction: Instruction, compute_units: u32, heap_frame: Option<u32>) -> Self {
         Self {
             instruction,
             compute_units,
+            heap_frame,
         }
     }
 }
@@ -33,6 +35,7 @@ impl InstructionBundle {
 pub struct IxCompiler {
     ix_buffer: Vec<Instruction>,
     total_compute_units: u32,
+    max_heap_frame: Option<u32>,
     payer: Pubkey,
     address_lookup_table_accounts: Vec<AddressLookupTableAccount>,
     compute_units_price: Option<u64>,
@@ -43,6 +46,7 @@ impl IxCompiler {
         Self {
             ix_buffer: Vec::new(),
             total_compute_units: 0,
+            max_heap_frame: None,
             payer,
             address_lookup_table_accounts: Vec::new(),
             compute_units_price,
@@ -67,6 +71,7 @@ impl IxCompiler {
         ix: Instruction,
         address_lookup_table_accounts: &[AddressLookupTableAccount],
         compute_units: u32,
+        heap_frame: Option<u32>,
     ) -> Result<Option<VersionedMessage>, TransactorError> {
         // Initial instruction validation
         let msg = Message::try_compile(
@@ -74,6 +79,7 @@ impl IxCompiler {
             &[
                 &get_cu_limit_ix(compute_units, 1),
                 &self.get_ix_price_if_any()[..],
+                &get_heap_frame_ix(heap_frame),
                 &[ix.clone()],
             ]
             .concat(),
@@ -87,9 +93,13 @@ impl IxCompiler {
         }
 
         let total_compute_units = self.total_compute_units + compute_units;
+        let max_heap_frame = self.max_heap_frame.map_or(heap_frame, |max_heap_frame| {
+            heap_frame.map_or(Some(max_heap_frame), |hf| Some(max_heap_frame.max(hf)))
+        });
         let ix_buffer = [
             &get_cu_limit_ix(total_compute_units, self.ix_buffer.len() + 1),
             &self.get_ix_price_if_any()[..],
+            &get_heap_frame_ix(max_heap_frame),
             &self.ix_buffer[..],
             &[ix.clone()],
         ]
@@ -122,6 +132,7 @@ impl IxCompiler {
                 &[
                     &get_cu_limit_ix(self.total_compute_units, self.ix_buffer.len()),
                     &self.get_ix_price_if_any()[..],
+                    &get_heap_frame_ix(self.max_heap_frame),
                     &self.ix_buffer[..],
                 ]
                 .concat(),
@@ -133,17 +144,20 @@ impl IxCompiler {
             self.address_lookup_table_accounts.clear();
             self.address_lookup_table_accounts.extend_from_slice(address_lookup_table_accounts);
             self.total_compute_units = compute_units;
+            self.max_heap_frame = heap_frame;
             return Ok(Some(VersionedMessage::V0(msg)));
         } else if approaches_limits(msg_len, total_compute_units) {
             log_with_ctx!(debug, log_ctx, "Tx limit reached, sending current instructions...");
             self.ix_buffer.clear();
             self.address_lookup_table_accounts.clear();
             self.total_compute_units = 0;
+            self.max_heap_frame = None;
             return Ok(Some(msg));
         }
         self.ix_buffer.push(ix);
         self.address_lookup_table_accounts.extend_from_slice(address_lookup_table_accounts);
         self.total_compute_units = total_compute_units;
+        self.max_heap_frame = max_heap_frame;
         Ok(None)
     }
 
@@ -156,6 +170,7 @@ impl IxCompiler {
             &[
                 &get_cu_limit_ix(self.total_compute_units, self.ix_buffer.len()),
                 &self.get_ix_price_if_any()[..],
+                &get_heap_frame_ix(self.max_heap_frame),
                 &self.ix_buffer[..],
             ]
             .concat(),
@@ -165,6 +180,7 @@ impl IxCompiler {
         self.ix_buffer.clear();
         self.address_lookup_table_accounts.clear();
         self.total_compute_units = 0;
+        self.max_heap_frame = None;
         Ok(Some(VersionedMessage::V0(msg)))
     }
 }
@@ -195,6 +211,10 @@ fn get_cu_limit_ix(compute_units: u32, regular_ix_count: usize) -> Vec<Instructi
     )]
 }
 
+fn get_heap_frame_ix(heap_frame: Option<u32>) -> Vec<Instruction> {
+    heap_frame.map(ComputeBudgetInstruction::request_heap_frame).into_iter().collect()
+}
+
 #[cfg(test)]
 mod test {
     use solana_sdk::{
@@ -218,7 +238,9 @@ mod test {
         let mut ix_compiler = IxCompiler::new(signer.pubkey(), Some(1000));
         let mut n = 0;
         let msg = loop {
-            if let Some(msg) = ix_compiler.compile::<&str>(None, ix.clone(), &[], 20000).unwrap() {
+            if let Some(msg) =
+                ix_compiler.compile::<&str>(None, ix.clone(), &[], 20000, None).unwrap()
+            {
                 break msg;
             } else {
                 n += 1;
@@ -235,7 +257,8 @@ mod test {
         println!("Flush tx len {}", tx_raw.len());
         assert!(tx_raw.len() <= 1232);
 
-        let msg = ix_compiler.compile::<&str>(None, ix.clone(), &[], 1200000).unwrap().unwrap();
+        let msg =
+            ix_compiler.compile::<&str>(None, ix.clone(), &[], 1200000, None).unwrap().unwrap();
         let tx = VersionedTransaction::try_new(msg, &[&signer]).unwrap();
         let tx_raw: Vec<u8> = bincode::serialize(&tx).unwrap();
         assert!(tx_raw.len() <= 1232);
