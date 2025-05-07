@@ -121,17 +121,20 @@ impl IxCompiler {
             &address_lookup_table_accounts_all,
             Hash::default(),
         ) {
-            Ok(msg) => msg,
             Err(CompileError::AccountIndexOverflow) => {
-                return self.send_previous(
+                log_with_ctx!(
+                    debug,
                     log_ctx,
+                    "Account limit reached, sending previous instructions..."
+                );
+                return self.send_previous(
                     ix,
                     address_lookup_table_accounts,
                     compute_units,
                     heap_frame,
-                )
+                );
             }
-            err => err?,
+            msg => msg?,
         };
         let msg = VersionedMessage::V0(msg);
         let msg_len = msg.serialize().len();
@@ -144,8 +147,8 @@ impl IxCompiler {
             total_compute_units
         );
         if exceeds_limits(msg_len, total_compute_units) {
+            log_with_ctx!(debug, log_ctx, "Tx limit reached, sending previous instructions...");
             return self.send_previous(
-                log_ctx,
                 ix,
                 address_lookup_table_accounts,
                 compute_units,
@@ -166,15 +169,13 @@ impl IxCompiler {
         Ok(None)
     }
 
-    fn send_previous<T: Display>(
+    fn send_previous(
         &mut self,
-        log_ctx: Option<T>,
         ix: Instruction,
         address_lookup_table_accounts: &[AddressLookupTableAccount],
         compute_units: u32,
         heap_frame: Option<u32>,
     ) -> Result<Option<VersionedMessage>, TransactorError> {
-        log_with_ctx!(debug, log_ctx, "Tx limit reached, sending previous instructions...");
         let msg = Message::try_compile(
             &self.payer,
             &[
