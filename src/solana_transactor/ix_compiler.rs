@@ -19,14 +19,21 @@ pub struct InstructionBundle {
     pub instruction: Instruction,
     pub compute_units: u32,
     pub heap_frame: Option<u32>,
+    pub address_lookup_table_accounts: Vec<AddressLookupTableAccount>,
 }
 
 impl InstructionBundle {
-    pub fn new(instruction: Instruction, compute_units: u32, heap_frame: Option<u32>) -> Self {
+    pub fn new(
+        instruction: Instruction,
+        compute_units: u32,
+        heap_frame: Option<u32>,
+        address_lookup_table_accounts: Vec<AddressLookupTableAccount>,
+    ) -> Self {
         Self {
             instruction,
             compute_units,
             heap_frame,
+            address_lookup_table_accounts,
         }
     }
 }

@@ -26,10 +26,14 @@ pub async fn send_with_alt(
     signer: &Keypair,
     additional_signers: &[&Keypair],
     parallel_limit: usize,
-    alt: &[AddressLookupTableAccount],
     compute_unit_price: Option<u64>,
 ) {
-    let alt_addresses: Vec<_> = alt.iter().flat_map(|x| x.addresses.clone().into_iter()).collect();
+    let alt_addresses: Vec<_> = instructions
+        .iter()
+        .flat_map(|ix| {
+            ix.address_lookup_table_accounts.iter().flat_map(|x| x.addresses.iter().copied())
+        })
+        .collect();
     let total_addresses: Vec<_> = instructions
         .iter()
         .flat_map(|x| {
@@ -52,7 +56,7 @@ pub async fn send_with_alt(
         .expect("Failed to get slot");
     let (ix, alt_address) = create_lookup_table(signer.pubkey(), signer.pubkey(), slot);
     debug!("New ALT address {}", alt_address);
-    let ix = InstructionBundle::new(ix, 200000, None);
+    let ix = InstructionBundle::new(ix, 200000, None, vec![]);
     transactor
         .send_all_instructions::<&str>(
             None,
@@ -60,7 +64,6 @@ pub async fn send_with_alt(
             &[signer],
             signer.pubkey(),
             parallel_limit,
-            &[],
             compute_unit_price,
             true,
         )
@@ -80,7 +83,7 @@ pub async fn send_with_alt(
             is_signer: false,
             is_writable: false,
         });
-        let ix = InstructionBundle::new(ix, 200000, None);
+        let ix = InstructionBundle::new(ix, 200000, None, vec![]);
         transactor
             .send_all_instructions::<&str>(
                 None,
@@ -88,7 +91,6 @@ pub async fn send_with_alt(
                 &[signer],
                 signer.pubkey(),
                 parallel_limit,
-                &[],
                 compute_unit_price,
                 true,
             )
@@ -105,14 +107,38 @@ pub async fn send_with_alt(
         )
         .await
         .expect("Failed to load new ALT");
+
+    let instructions: Vec<_> = instructions
+        .iter()
+        .cloned()
+        .map(
+            |InstructionBundle {
+                 instruction,
+                 compute_units,
+                 heap_frame,
+                 mut address_lookup_table_accounts,
+             }| {
+                if instruction.accounts.iter().any(|acc| to_add.contains(&acc.pubkey)) {
+                    address_lookup_table_accounts.push(new_alt.clone());
+                }
+
+                InstructionBundle {
+                    instruction,
+                    compute_units,
+                    heap_frame,
+                    address_lookup_table_accounts,
+                }
+            },
+        )
+        .collect();
+
     if let Err(e) = transactor
         .send_all_instructions::<&str>(
             None,
-            instructions,
+            &instructions,
             &[&[signer], additional_signers].concat(),
             signer.pubkey(),
             parallel_limit,
-            &[&[new_alt], alt].concat(),
             compute_unit_price,
             true,
         )
@@ -122,7 +148,7 @@ pub async fn send_with_alt(
     }
     debug!("Deactivating ALT");
     let ix = deactivate_lookup_table(alt_address, signer.pubkey());
-    let ix = InstructionBundle::new(ix, 200000, None);
+    let ix = InstructionBundle::new(ix, 200000, None, vec![]);
     transactor
         .send_all_instructions::<&str>(
             None,
@@ -130,7 +156,6 @@ pub async fn send_with_alt(
             &[signer],
             signer.pubkey(),
             parallel_limit,
-            &[],
             compute_unit_price,
             true,
         )
@@ -139,7 +164,7 @@ pub async fn send_with_alt(
     tokio::time::sleep(Duration::from_secs(240)).await;
     debug!("Clearing ALT");
     let ix = close_lookup_table(alt_address, signer.pubkey(), signer.pubkey());
-    let ix = InstructionBundle::new(ix, 200000, None);
+    let ix = InstructionBundle::new(ix, 200000, None, vec![]);
     transactor
         .send_all_instructions::<&str>(
             None,
@@ -147,7 +172,6 @@ pub async fn send_with_alt(
             &[signer],
             signer.pubkey(),
             parallel_limit,
-            &[],
             compute_unit_price,
             true,
         )
