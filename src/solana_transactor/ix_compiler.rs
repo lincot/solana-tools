@@ -3,7 +3,7 @@ use solana_sdk::{
     compute_budget::ComputeBudgetInstruction,
     hash::Hash,
     instruction::Instruction,
-    message::{v0::Message, VersionedMessage},
+    message::{v0::Message, CompileError, VersionedMessage},
     pubkey::Pubkey,
 };
 use std::fmt::Display;
@@ -115,12 +115,24 @@ impl IxCompiler {
             address_lookup_table_accounts,
         ]
         .concat();
-        let msg = Message::try_compile(
+        let msg = match Message::try_compile(
             &self.payer,
             &ix_buffer,
             &address_lookup_table_accounts_all,
             Hash::default(),
-        )?;
+        ) {
+            Ok(msg) => msg,
+            Err(CompileError::AccountIndexOverflow) => {
+                return self.send_previous(
+                    log_ctx,
+                    ix,
+                    address_lookup_table_accounts,
+                    compute_units,
+                    heap_frame,
+                )
+            }
+            err => err?,
+        };
         let msg = VersionedMessage::V0(msg);
         let msg_len = msg.serialize().len();
         log_with_ctx!(
@@ -132,26 +144,13 @@ impl IxCompiler {
             total_compute_units
         );
         if exceeds_limits(msg_len, total_compute_units) {
-            log_with_ctx!(debug, log_ctx, "Tx limit reached, sending previous instructions...");
-            let msg = Message::try_compile(
-                &self.payer,
-                &[
-                    &[get_compute_units_ix(self.total_compute_units)],
-                    &self.get_ix_price_if_any()[..],
-                    &get_heap_frame_ix(self.max_heap_frame),
-                    &self.ix_buffer[..],
-                ]
-                .concat(),
-                &self.address_lookup_table_accounts,
-                Hash::default(),
-            )?;
-            self.ix_buffer.clear();
-            self.ix_buffer.push(ix);
-            self.address_lookup_table_accounts.clear();
-            self.address_lookup_table_accounts.extend_from_slice(address_lookup_table_accounts);
-            self.total_compute_units = compute_units;
-            self.max_heap_frame = heap_frame;
-            return Ok(Some(VersionedMessage::V0(msg)));
+            return self.send_previous(
+                log_ctx,
+                ix,
+                address_lookup_table_accounts,
+                compute_units,
+                heap_frame,
+            );
         } else if approaches_limits(msg_len, total_compute_units) {
             log_with_ctx!(debug, log_ctx, "Tx limit reached, sending current instructions...");
             self.ix_buffer.clear();
@@ -165,6 +164,36 @@ impl IxCompiler {
         self.total_compute_units = total_compute_units;
         self.max_heap_frame = max_heap_frame;
         Ok(None)
+    }
+
+    fn send_previous<T: Display>(
+        &mut self,
+        log_ctx: Option<T>,
+        ix: Instruction,
+        address_lookup_table_accounts: &[AddressLookupTableAccount],
+        compute_units: u32,
+        heap_frame: Option<u32>,
+    ) -> Result<Option<VersionedMessage>, TransactorError> {
+        log_with_ctx!(debug, log_ctx, "Tx limit reached, sending previous instructions...");
+        let msg = Message::try_compile(
+            &self.payer,
+            &[
+                &[get_compute_units_ix(self.total_compute_units)],
+                &self.get_ix_price_if_any()[..],
+                &get_heap_frame_ix(self.max_heap_frame),
+                &self.ix_buffer[..],
+            ]
+            .concat(),
+            &self.address_lookup_table_accounts,
+            Hash::default(),
+        )?;
+        self.ix_buffer.clear();
+        self.ix_buffer.push(ix);
+        self.address_lookup_table_accounts.clear();
+        self.address_lookup_table_accounts.extend_from_slice(address_lookup_table_accounts);
+        self.total_compute_units = compute_units;
+        self.max_heap_frame = heap_frame;
+        Ok(Some(VersionedMessage::V0(msg)))
     }
 
     pub fn flush(&mut self) -> Result<Option<VersionedMessage>, TransactorError> {
