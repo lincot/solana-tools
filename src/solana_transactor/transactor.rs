@@ -162,7 +162,6 @@ impl SolanaTransactor {
             msg.set_recent_blockhash(current_blockhash);
             let tx = VersionedTransaction::try_new(msg, &signers_ref)
                 .map_err(TransactorError::FailedToSign)?;
-            let mut i = 0;
             let signature = loop {
                 let tx = tx.clone();
                 match self
@@ -183,11 +182,8 @@ impl SolanaTransactor {
                     )
                     .await
                 {
-                    Ok(s) if (i >= self.rpc_pool.num_write_rpcs() || i >= 2) => {
+                    Ok(s) => {
                         break s;
-                    }
-                    Ok(_) => {
-                        i += 1;
                     }
                     Err((e, url)) => {
                         log_with_ctx!(warn, log_ctx, "Failed to send tx: {} ({})", e, url);
