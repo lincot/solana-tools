@@ -32,7 +32,14 @@ pub async fn send_with_alt(
     let alt_addresses: Vec<_> = alt.iter().flat_map(|x| x.addresses.clone().into_iter()).collect();
     let total_addresses: Vec<_> = instructions
         .iter()
-        .flat_map(|x| x.instruction.accounts.clone().into_iter().map(|x| x.pubkey))
+        .flat_map(|x| {
+            x.instruction
+                .accounts
+                .clone()
+                .into_iter()
+                .map(|x| x.pubkey)
+                .chain(std::iter::once(signer.pubkey()))
+        })
         .collect();
     let to_add: HashSet<_> =
         total_addresses.iter().cloned().filter(|x| !alt_addresses.contains(x)).collect();
