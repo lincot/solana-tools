@@ -13,6 +13,11 @@ use crate::log_with_ctx;
 
 const MAX_CU: u32 = 1_400_000;
 const MAX_MSG_LEN: usize = 1232 - 65; // assuming only one signature
+/// The maximum number of accounts in a transaction that will not cause the
+/// "Transaction locked too many accounts" error. May be increased to 128 when
+/// [the 128 accounts feature](https://github.com/solana-labs/solana/issues/27241)
+/// gets enabled on mainnet.
+const MAX_ACCOUNTS: usize = 64;
 
 #[derive(Debug, Clone)]
 pub struct InstructionBundle {
@@ -94,7 +99,8 @@ impl IxCompiler {
         )?;
         let msg = VersionedMessage::V0(msg);
         let msg_len = msg.serialize().len();
-        if exceeds_limits(msg_len, compute_units) {
+        let account_count = get_account_count(&msg);
+        if exceeds_limits(msg_len, compute_units, account_count) {
             return Err(TransactorError::InstructionTooBig);
         }
 
@@ -138,15 +144,17 @@ impl IxCompiler {
         };
         let msg = VersionedMessage::V0(msg);
         let msg_len = msg.serialize().len();
+        let num_accounts = get_account_count(&msg);
         log_with_ctx!(
             debug,
             log_ctx,
-            "Instructions: {} Tx len: {} CU: {}",
+            "Instructions: {}, tx len: {}, CU: {}, accounts: {}",
             self.ix_buffer.len(),
             msg_len,
-            total_compute_units
+            total_compute_units,
+            num_accounts,
         );
-        if exceeds_limits(msg_len, total_compute_units) {
+        if exceeds_limits(msg_len, total_compute_units, num_accounts) {
             log_with_ctx!(debug, log_ctx, "Tx limit reached, sending previous instructions...");
             return self.send_previous(
                 ix,
@@ -222,8 +230,8 @@ impl IxCompiler {
 }
 
 /// Returns true if tx exceeds limits
-fn exceeds_limits(msg_len: usize, compute_units: u32) -> bool {
-    msg_len > MAX_MSG_LEN || compute_units > MAX_CU
+fn exceeds_limits(msg_len: usize, compute_units: u32, account_count: usize) -> bool {
+    msg_len > MAX_MSG_LEN || compute_units > MAX_CU || account_count > MAX_ACCOUNTS
 }
 
 /// Returns true if tx approaches limits
@@ -237,6 +245,16 @@ fn get_compute_units_ix(compute_units: u32) -> Instruction {
 
 fn get_heap_frame_ix(heap_frame: Option<u32>) -> Vec<Instruction> {
     heap_frame.map(ComputeBudgetInstruction::request_heap_frame).into_iter().collect()
+}
+
+fn get_account_count(message: &VersionedMessage) -> usize {
+    message.static_account_keys().len()
+        + message.address_table_lookups().map_or(0, |lookups| {
+            lookups
+                .iter()
+                .map(|lookup| lookup.writable_indexes.len() + lookup.readonly_indexes.len())
+                .sum()
+        })
 }
 
 #[cfg(test)]
