@@ -12,7 +12,6 @@ use solana_sdk::{
     transaction::{self, VersionedTransaction},
 };
 use std::{
-    collections::HashMap,
     fmt::Display,
     sync::Arc,
     time::{Duration, Instant},
@@ -154,8 +153,9 @@ impl SolanaTransactor {
         id: Uuid,
     ) -> Result<TxResult, TransactorError> {
         let mut current_blockhash = self.get_blockhash().await;
-        let mut queue = HashMap::new();
-        let start = Instant::now();
+        let mut queue = Vec::new();
+        let mut queue_start = 0;
+        let bundle_start = Instant::now();
         loop {
             let signers_ref: Vec<_> = bundle.signers.iter().collect();
             let mut msg = bundle.message.clone();
@@ -190,7 +190,7 @@ impl SolanaTransactor {
                     }
                 }
             };
-            queue.insert(signature, Instant::now());
+            queue.push((signature, Instant::now()));
             log_with_ctx!(
                 debug,
                 log_ctx,
@@ -199,29 +199,27 @@ impl SolanaTransactor {
                 signature,
                 queue.len()
             );
-            tokio::time::sleep(Duration::from_secs(5)).await;
-            for signature in queue.clone().keys().copied() {
-                if !queue.contains_key(&signature) {
-                    continue;
+            for _ in 0..16 {
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                for &(signature, sig_start) in &queue[queue_start..] {
+                    if sig_start.elapsed() > Duration::from_secs(30) {
+                        queue_start += 1;
+                        continue;
+                    }
+                    if let Some(status) =
+                        self.get_tx_status(&signature, CommitmentConfig::confirmed()).await
+                    {
+                        log_with_ctx!(
+                            debug,
+                            log_ctx,
+                            "Bundle {} confirmed {} after {} s, finalizing...",
+                            id,
+                            signature,
+                            bundle_start.elapsed().as_secs()
+                        );
+                        return Ok(TxResult { signature, status });
+                    }
                 }
-                if queue[&signature].elapsed() > Duration::from_secs(30) {
-                    queue.remove(&signature);
-                    continue;
-                }
-                if let Some(status) =
-                    self.get_tx_status(&signature, CommitmentConfig::confirmed()).await
-                {
-                    log_with_ctx!(
-                        debug,
-                        log_ctx,
-                        "Bundle {} confirmed {} after {} s, finalizing...",
-                        id,
-                        signature,
-                        start.elapsed().as_secs()
-                    );
-                    return Ok(TxResult { signature, status });
-                }
-                tokio::time::sleep(Duration::from_millis(700)).await;
             }
             tokio::time::sleep(Duration::from_secs(5)).await;
             loop {
