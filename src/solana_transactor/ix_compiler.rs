@@ -162,13 +162,6 @@ impl IxCompiler {
                 compute_units,
                 heap_frame,
             );
-        } else if approaches_limits(msg_len, total_compute_units) {
-            log_with_ctx!(debug, log_ctx, "Tx limit reached, sending current instructions...");
-            self.ix_buffer.clear();
-            self.address_lookup_table_accounts.clear();
-            self.total_compute_units = 0;
-            self.max_heap_frame = None;
-            return Ok(Some(msg));
         }
         self.ix_buffer.push(ix);
         self.address_lookup_table_accounts.extend_from_slice(address_lookup_table_accounts);
@@ -232,11 +225,6 @@ impl IxCompiler {
 /// Returns true if tx exceeds limits
 fn exceeds_limits(msg_len: usize, compute_units: u32, account_count: usize) -> bool {
     msg_len > MAX_MSG_LEN || compute_units > MAX_CU || account_count > MAX_ACCOUNTS
-}
-
-/// Returns true if tx approaches limits
-fn approaches_limits(msg_len: usize, compute_units: u32) -> bool {
-    msg_len >= MAX_MSG_LEN - 32 || compute_units >= MAX_CU - 200_000
 }
 
 fn get_compute_units_ix(compute_units: u32) -> Instruction {
