@@ -9,7 +9,7 @@ use solana_sdk::{
 use std::fmt::Display;
 
 use super::TransactorError;
-use crate::log_with_ctx;
+use crate::{log_with_ctx, utils::max_of_option};
 
 const MAX_CU: u32 = 1_400_000;
 const MAX_MSG_LEN: usize = 1232 - 65; // assuming only one signature
@@ -105,9 +105,7 @@ impl IxCompiler {
         }
 
         let total_compute_units = self.total_compute_units + compute_units;
-        let max_heap_frame = self.max_heap_frame.map_or(heap_frame, |max_heap_frame| {
-            heap_frame.map_or(Some(max_heap_frame), |hf| Some(max_heap_frame.max(hf)))
-        });
+        let max_heap_frame = max_of_option(self.max_heap_frame, heap_frame);
         let ix_buffer = [
             &[get_compute_units_ix(total_compute_units)],
             &self.get_ix_price_if_any()[..],
