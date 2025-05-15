@@ -10,10 +10,7 @@ use solana_transaction_status::UiTransactionEncoding;
 use std::{collections::VecDeque, str::FromStr, time::Duration};
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::solana_logs::{
-    config::{SolanaClientConfig, SolanaListenerConfig},
-    EventListenerError, LogsBunch,
-};
+use crate::solana_logs::{config::SolanaClientConfig, EventListenerError, LogsBunch};
 
 pub(super) struct SolanaRetroReader {
     logs_sender: UnboundedSender<LogsBunch>,
@@ -26,15 +23,13 @@ impl SolanaRetroReader {
 
     pub(super) async fn read_events_backward(
         &self,
-        solana_config: SolanaListenerConfig,
+        solana_client_config: SolanaClientConfig,
+        program_to_listen: Pubkey,
         tx_read_from: String,
     ) -> Result<(), EventListenerError> {
-        let program_to_listen =
-            Pubkey::from_str(&solana_config.program_listen_to).expect("Expected to be");
-
         debug!("Found tx_read_from, start backward reading until: {}", tx_read_from);
         let rpc_pool =
-            RpcPool::new(&solana_config.client.read_rpcs, &solana_config.client.write_rpcs)?;
+            RpcPool::new(&solana_client_config.read_rpcs, &solana_client_config.write_rpcs)?;
 
         let mut tx_read_from = Some(Signature::from_str(&tx_read_from).map_err(|err| {
             error!("Failed to decode tx_start_from: {}", err);
@@ -57,7 +52,7 @@ impl SolanaRetroReader {
             loop {
                 let signatures_backward = Self::get_signatures_chunk(
                     &program_to_listen,
-                    &solana_config.client,
+                    &solana_client_config,
                     &rpc_pool,
                     until,
                     before,
@@ -82,7 +77,7 @@ impl SolanaRetroReader {
                     &mut before,
                     &mut log_bunches,
                     signatures_backward,
-                    solana_config.client.commitment,
+                    solana_client_config.commitment,
                     need_check,
                 )
                 .await;
