@@ -52,7 +52,7 @@ pub async fn send_with_alt(
         .expect("Failed to get slot");
     let (ix, alt_address) = create_lookup_table(signer.pubkey(), signer.pubkey(), slot);
     debug!("New ALT address {}", alt_address);
-    let ix = InstructionBundle::new(ix, 200000);
+    let ix = InstructionBundle::new(ix, 200000, None);
     transactor
         .send_all_instructions::<&str>(
             None,
@@ -80,7 +80,7 @@ pub async fn send_with_alt(
             is_signer: false,
             is_writable: false,
         });
-        let ix = InstructionBundle::new(ix, 200000);
+        let ix = InstructionBundle::new(ix, 200000, None);
         transactor
             .send_all_instructions::<&str>(
                 None,
@@ -122,7 +122,7 @@ pub async fn send_with_alt(
     }
     debug!("Deactivating ALT");
     let ix = deactivate_lookup_table(alt_address, signer.pubkey());
-    let ix = InstructionBundle::new(ix, 200000);
+    let ix = InstructionBundle::new(ix, 200000, None);
     transactor
         .send_all_instructions::<&str>(
             None,
@@ -139,7 +139,7 @@ pub async fn send_with_alt(
     tokio::time::sleep(Duration::from_secs(240)).await;
     debug!("Clearing ALT");
     let ix = close_lookup_table(alt_address, signer.pubkey(), signer.pubkey());
-    let ix = InstructionBundle::new(ix, 200000);
+    let ix = InstructionBundle::new(ix, 200000, None);
     transactor
         .send_all_instructions::<&str>(
             None,

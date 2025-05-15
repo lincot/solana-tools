@@ -370,7 +370,13 @@ impl SolanaTransactor {
             .iter()
             .filter_map(|ix| {
                 ix_compiler
-                    .compile(log_ctx.clone(), ix.instruction.clone(), alt, ix.compute_units)
+                    .compile(
+                        log_ctx.clone(),
+                        ix.instruction.clone(),
+                        alt,
+                        ix.compute_units,
+                        ix.heap_frame,
+                    )
                     .transpose()
             })
             .collect();

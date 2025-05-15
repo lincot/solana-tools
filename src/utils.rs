@@ -7,3 +7,12 @@ where D: Deserializer<'de> {
     let keydata = bs58::decode(s).into_vec().map_err(D::Error::custom)?;
     Keypair::from_bytes(&keydata).map_err(D::Error::custom)
 }
+
+pub(super) fn max_of_option<T: Ord>(left: Option<T>, right: Option<T>) -> Option<T> {
+    match (left, right) {
+        (Some(left), Some(right)) => Some(left.max(right)),
+        (Some(left), None) => Some(left),
+        (None, Some(right)) => Some(right),
+        (None, None) => None,
+    }
+}
