@@ -134,12 +134,6 @@ impl IxCompiler {
             self.address_lookup_table_accounts.extend_from_slice(address_lookup_table_accounts);
             self.total_compute_units = compute_units;
             return Ok(Some(VersionedMessage::V0(msg)));
-        } else if approaches_limits(msg_len, total_compute_units) {
-            log_with_ctx!(debug, log_ctx, "Tx limit reached, sending current instructions...");
-            self.ix_buffer.clear();
-            self.address_lookup_table_accounts.clear();
-            self.total_compute_units = 0;
-            return Ok(Some(msg));
         }
         self.ix_buffer.push(ix);
         self.address_lookup_table_accounts.extend_from_slice(address_lookup_table_accounts);
@@ -172,11 +166,6 @@ impl IxCompiler {
 /// Returns true if tx exceeds limits
 fn exceeds_limits(msg_len: usize, compute_units: u32) -> bool {
     msg_len > MAX_MSG_LEN || compute_units > MAX_CU
-}
-
-/// Returns true if tx approaches limits
-fn approaches_limits(msg_len: usize, compute_units: u32) -> bool {
-    msg_len >= MAX_MSG_LEN - 32 || compute_units >= MAX_CU - DEFAULT_CU
 }
 
 /// Returns a vector containing the CU (compute unit) limit instruction if the
