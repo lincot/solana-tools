@@ -4,7 +4,6 @@
 use futures::{StreamExt, TryStreamExt};
 use solana_client::rpc_config::RpcSendTransactionConfig;
 use solana_sdk::{
-    address_lookup_table::AddressLookupTableAccount,
     commitment_config::CommitmentConfig,
     hash::Hash,
     message::VersionedMessage,
@@ -361,7 +360,6 @@ impl SolanaTransactor {
         signers: &[&Keypair],
         payer: Pubkey,
         parallel_limit: usize,
-        alt: &[AddressLookupTableAccount],
         compute_unit_price: Option<u64>,
         finalize: bool,
     ) -> Result<Vec<TxResult>, TransactorError> {
@@ -373,7 +371,7 @@ impl SolanaTransactor {
                     .compile(
                         log_ctx.clone(),
                         ix.instruction.clone(),
-                        alt,
+                        &ix.alt_accounts,
                         ix.compute_units,
                         ix.heap_frame,
                     )
