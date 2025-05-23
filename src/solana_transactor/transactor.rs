@@ -12,7 +12,6 @@ use solana_sdk::{
     transaction::{self, VersionedTransaction},
 };
 use std::{
-    collections::HashMap,
     fmt::Display,
     sync::Arc,
     time::{Duration, Instant},
@@ -33,6 +32,15 @@ use super::{
 };
 
 use crate::log_with_ctx;
+
+/// The timeframe in which we check the status of a transaction before sending
+/// a new one. The reason we chose 16 seconds is that, on Solana Test Validator
+/// 2.1.0, it can take up to 15 seconds to confirm a transaction that uses ALTs.
+const TX_STATUS_POLL_TIMEOUT: Duration = Duration::from_secs(16);
+const TX_STATUS_POLL_INTERVAL: Duration = Duration::from_secs(1);
+const STALE_SIGNATURE_THRESHOLD: Duration = Duration::from_secs(30);
+const BLOCKHASH_REFRESH_INTERVAL: Duration = Duration::from_millis(1_100);
+const TX_FINALIZE_POLL_INTERVAL: Duration = Duration::from_secs(5);
 
 #[derive(Clone)]
 pub struct MessageBundle {
@@ -154,43 +162,18 @@ impl SolanaTransactor {
         id: Uuid,
     ) -> Result<TxResult, TransactorError> {
         let mut current_blockhash = self.get_blockhash().await;
-        let mut queue = HashMap::new();
-        let start = Instant::now();
+        let mut queue = Vec::new();
+        let mut queue_start = 0;
+        let bundle_start = Instant::now();
         loop {
             let signers_ref: Vec<_> = bundle.signers.iter().collect();
             let mut msg = bundle.message.clone();
             msg.set_recent_blockhash(current_blockhash);
             let tx = VersionedTransaction::try_new(msg, &signers_ref)
                 .map_err(TransactorError::FailedToSign)?;
-            let signature = loop {
-                let tx = tx.clone();
-                match self
-                    .rpc_pool
-                    .with_write_rpc(
-                        |rpc| async move {
-                            rpc.send_transaction_with_config(
-                                &tx,
-                                RpcSendTransactionConfig {
-                                    skip_preflight: true,
-                                    ..Default::default()
-                                },
-                            )
-                            .await
-                            .map_err(|e| (e, rpc.url()))
-                        },
-                        CommitmentConfig::confirmed(),
-                    )
-                    .await
-                {
-                    Ok(s) => {
-                        break s;
-                    }
-                    Err((e, url)) => {
-                        log_with_ctx!(warn, log_ctx, "Failed to send tx: {} ({})", e, url);
-                    }
-                }
-            };
-            queue.insert(signature, Instant::now());
+            let signature = self.send_transaction(&log_ctx, tx).await;
+            let tx_status_loop_start = Instant::now();
+            queue.push((signature, tx_status_loop_start));
             log_with_ctx!(
                 debug,
                 log_ctx,
@@ -199,13 +182,49 @@ impl SolanaTransactor {
                 signature,
                 queue.len()
             );
-            tokio::time::sleep(Duration::from_secs(5)).await;
-            for signature in queue.clone().keys().copied() {
-                if !queue.contains_key(&signature) {
-                    continue;
-                }
-                if queue[&signature].elapsed() > Duration::from_secs(30) {
-                    queue.remove(&signature);
+            if let Some(status) = self
+                .wait_for_confirm(
+                    &log_ctx,
+                    id,
+                    &queue,
+                    &mut queue_start,
+                    bundle_start,
+                    tx_status_loop_start,
+                )
+                .await
+            {
+                return status;
+            }
+            self.get_new_blockhash(&mut current_blockhash).await;
+        }
+    }
+
+    async fn get_new_blockhash(&self, current_blockhash: &mut Hash) {
+        loop {
+            let new_blockhash = self.get_blockhash().await;
+            if new_blockhash != *current_blockhash {
+                *current_blockhash = new_blockhash;
+                break;
+            } else {
+                tokio::time::sleep(BLOCKHASH_REFRESH_INTERVAL).await;
+            }
+        }
+    }
+
+    async fn wait_for_confirm<T: Display>(
+        &self,
+        log_ctx: &Option<T>,
+        id: Uuid,
+        queue: &[(Signature, Instant)],
+        queue_start: &mut usize,
+        bundle_start: Instant,
+        tx_status_loop_start: Instant,
+    ) -> Option<Result<TxResult, TransactorError>> {
+        while tx_status_loop_start.elapsed() < TX_STATUS_POLL_TIMEOUT {
+            tokio::time::sleep(TX_STATUS_POLL_INTERVAL).await;
+            for &(signature, sig_start) in &queue[*queue_start..] {
+                if sig_start.elapsed() > STALE_SIGNATURE_THRESHOLD {
+                    *queue_start += 1;
                     continue;
                 }
                 if let Some(status) =
@@ -214,23 +233,49 @@ impl SolanaTransactor {
                     log_with_ctx!(
                         debug,
                         log_ctx,
-                        "Bundle {} confirmed {} after {} s, finalizing...",
+                        "Bundle: {}, confirmed sig: {}, after: {}s, status: {:?}, finalizing...",
                         id,
                         signature,
-                        start.elapsed().as_secs()
+                        bundle_start.elapsed().as_secs(),
+                        status,
                     );
-                    return Ok(TxResult { signature, status });
+                    return Some(Ok(TxResult { signature, status }));
                 }
-                tokio::time::sleep(Duration::from_millis(700)).await;
             }
-            tokio::time::sleep(Duration::from_secs(5)).await;
-            loop {
-                let new_blockhash = self.get_blockhash().await;
-                if new_blockhash != current_blockhash {
-                    current_blockhash = new_blockhash;
-                    break;
-                } else {
-                    tokio::time::sleep(Duration::from_millis(1100)).await;
+        }
+        None
+    }
+
+    async fn send_transaction<T: Display>(
+        &self,
+        log_ctx: &Option<T>,
+        tx: VersionedTransaction,
+    ) -> Signature {
+        loop {
+            let tx = tx.clone();
+            match self
+                .rpc_pool
+                .with_write_rpc(
+                    |rpc| async move {
+                        rpc.send_transaction_with_config(
+                            &tx,
+                            RpcSendTransactionConfig {
+                                skip_preflight: true,
+                                ..Default::default()
+                            },
+                        )
+                        .await
+                        .map_err(|e| (e, rpc.url()))
+                    },
+                    CommitmentConfig::confirmed(),
+                )
+                .await
+            {
+                Ok(s) => {
+                    break s;
+                }
+                Err((e, url)) => {
+                    log_with_ctx!(warn, log_ctx, "Failed to send tx: {} ({})", e, url);
                 }
             }
         }
@@ -245,7 +290,7 @@ impl SolanaTransactor {
         start: Instant,
     ) -> Result<(), TransactorError> {
         for _ in 0..20 {
-            tokio::time::sleep(Duration::from_secs(5)).await;
+            tokio::time::sleep(TX_FINALIZE_POLL_INTERVAL).await;
             match self
                 .rpc_pool
                 .with_read_rpc(

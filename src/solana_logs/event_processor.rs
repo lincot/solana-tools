@@ -20,7 +20,7 @@ pub trait EventProcessor {
         if !events.is_empty() {
             debug!(
                 "Logs intercepted, tx_signature: {}, events: {}, need_check: {}",
-                logs_bunch.tx_signature.to_string(),
+                logs_bunch.tx_signature,
                 events.len(),
                 logs_bunch.need_check
             );
