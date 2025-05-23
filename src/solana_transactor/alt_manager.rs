@@ -30,9 +30,7 @@ pub async fn send_with_alt(
 ) {
     let alt_addresses: Vec<_> = instructions
         .iter()
-        .flat_map(|ix| {
-            ix.address_lookup_table_accounts.iter().flat_map(|x| x.addresses.iter().copied())
-        })
+        .flat_map(|ix| ix.alt_accounts.iter().flat_map(|x| x.addresses.iter().copied()))
         .collect();
     let total_addresses: Vec<_> = instructions
         .iter()
@@ -48,7 +46,7 @@ pub async fn send_with_alt(
         .await
         .expect("Failed to get slot");
     let (ix, alt_address) = create_lookup_table(signer.pubkey(), signer.pubkey(), slot);
-    debug!("New ALT address {}", alt_address);
+    debug!("New ALT address: {}", alt_address);
     let ix = InstructionBundle::new(ix, 200000, None, vec![]);
     transactor
         .send_all_instructions::<&str>(
@@ -109,17 +107,17 @@ pub async fn send_with_alt(
                  instruction,
                  compute_units,
                  heap_frame,
-                 mut address_lookup_table_accounts,
+                 mut alt_accounts,
              }| {
                 if instruction.accounts.iter().any(|acc| to_add.contains(&acc.pubkey)) {
-                    address_lookup_table_accounts.push(new_alt.clone());
+                    alt_accounts.push(new_alt.clone());
                 }
 
                 InstructionBundle {
                     instruction,
                     compute_units,
                     heap_frame,
-                    address_lookup_table_accounts,
+                    alt_accounts,
                 }
             },
         )

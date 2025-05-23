@@ -3,7 +3,7 @@ use solana_sdk::{
     compute_budget::ComputeBudgetInstruction,
     hash::Hash,
     instruction::Instruction,
-    message::{v0::Message, CompileError, VersionedMessage},
+    message::{v0::Message, VersionedMessage},
     pubkey::Pubkey,
 };
 use std::fmt::Display;
@@ -24,7 +24,7 @@ pub struct InstructionBundle {
     pub instruction: Instruction,
     pub compute_units: u32,
     pub heap_frame: Option<u32>,
-    pub address_lookup_table_accounts: Vec<AddressLookupTableAccount>,
+    pub alt_accounts: Vec<AddressLookupTableAccount>,
 }
 
 impl InstructionBundle {
@@ -32,13 +32,13 @@ impl InstructionBundle {
         instruction: Instruction,
         compute_units: u32,
         heap_frame: Option<u32>,
-        address_lookup_table_accounts: Vec<AddressLookupTableAccount>,
+        alt_accounts: Vec<AddressLookupTableAccount>,
     ) -> Self {
         Self {
             instruction,
             compute_units,
             heap_frame,
-            address_lookup_table_accounts,
+            alt_accounts,
         }
     }
 }
@@ -48,7 +48,7 @@ pub struct IxCompiler {
     total_compute_units: u32,
     max_heap_frame: Option<u32>,
     payer: Pubkey,
-    address_lookup_table_accounts: Vec<AddressLookupTableAccount>,
+    alt_accounts: Vec<AddressLookupTableAccount>,
     compute_units_price: Option<u64>,
 }
 
@@ -59,7 +59,7 @@ impl IxCompiler {
             total_compute_units: 0,
             max_heap_frame: None,
             payer,
-            address_lookup_table_accounts: Vec::new(),
+            alt_accounts: Vec::new(),
             compute_units_price,
         }
     }
@@ -80,7 +80,7 @@ impl IxCompiler {
         &mut self,
         log_ctx: Option<T>,
         ix: Instruction,
-        address_lookup_table_accounts: &[AddressLookupTableAccount],
+        alt_accounts: &[AddressLookupTableAccount],
         compute_units: u32,
         heap_frame: Option<u32>,
     ) -> Result<Option<VersionedMessage>, TransactorError> {
@@ -94,7 +94,7 @@ impl IxCompiler {
                 &[ix.clone()],
             ]
             .concat(),
-            address_lookup_table_accounts,
+            alt_accounts,
             Hash::default(),
         )?;
         let msg = VersionedMessage::V0(msg);
@@ -114,32 +114,9 @@ impl IxCompiler {
             &[ix.clone()],
         ]
         .concat();
-        let address_lookup_table_accounts_all = [
-            &self.address_lookup_table_accounts[..],
-            address_lookup_table_accounts,
-        ]
-        .concat();
-        let msg = match Message::try_compile(
-            &self.payer,
-            &ix_buffer,
-            &address_lookup_table_accounts_all,
-            Hash::default(),
-        ) {
-            Err(CompileError::AccountIndexOverflow) => {
-                log_with_ctx!(
-                    debug,
-                    log_ctx,
-                    "Account limit reached, sending previous instructions..."
-                );
-                return self.send_previous(
-                    ix,
-                    address_lookup_table_accounts,
-                    compute_units,
-                    heap_frame,
-                );
-            }
-            msg => msg?,
-        };
+        let alt_accounts_all = [&self.alt_accounts[..], alt_accounts].concat();
+        let msg =
+            Message::try_compile(&self.payer, &ix_buffer, &alt_accounts_all, Hash::default())?;
         let msg = VersionedMessage::V0(msg);
         let msg_len = msg.serialize().len();
         let num_accounts = get_account_count(&msg);
@@ -154,46 +131,31 @@ impl IxCompiler {
         );
         if exceeds_limits(msg_len, total_compute_units, num_accounts) {
             log_with_ctx!(debug, log_ctx, "Tx limit reached, sending previous instructions...");
-            return self.send_previous(
-                ix,
-                address_lookup_table_accounts,
-                compute_units,
-                heap_frame,
-            );
+            let msg = Message::try_compile(
+                &self.payer,
+                &[
+                    &[get_compute_units_ix(self.total_compute_units)],
+                    &self.get_ix_price_if_any()[..],
+                    &get_heap_frame_ix(self.max_heap_frame),
+                    &self.ix_buffer[..],
+                ]
+                .concat(),
+                &self.alt_accounts,
+                Hash::default(),
+            )?;
+            self.ix_buffer.clear();
+            self.ix_buffer.push(ix);
+            self.alt_accounts.clear();
+            self.alt_accounts.extend_from_slice(alt_accounts);
+            self.total_compute_units = compute_units;
+            self.max_heap_frame = heap_frame;
+            return Ok(Some(VersionedMessage::V0(msg)));
         }
         self.ix_buffer.push(ix);
-        self.address_lookup_table_accounts.extend_from_slice(address_lookup_table_accounts);
+        self.alt_accounts.extend_from_slice(alt_accounts);
         self.total_compute_units = total_compute_units;
         self.max_heap_frame = max_heap_frame;
         Ok(None)
-    }
-
-    fn send_previous(
-        &mut self,
-        ix: Instruction,
-        address_lookup_table_accounts: &[AddressLookupTableAccount],
-        compute_units: u32,
-        heap_frame: Option<u32>,
-    ) -> Result<Option<VersionedMessage>, TransactorError> {
-        let msg = Message::try_compile(
-            &self.payer,
-            &[
-                &[get_compute_units_ix(self.total_compute_units)],
-                &self.get_ix_price_if_any()[..],
-                &get_heap_frame_ix(self.max_heap_frame),
-                &self.ix_buffer[..],
-            ]
-            .concat(),
-            &self.address_lookup_table_accounts,
-            Hash::default(),
-        )?;
-        self.ix_buffer.clear();
-        self.ix_buffer.push(ix);
-        self.address_lookup_table_accounts.clear();
-        self.address_lookup_table_accounts.extend_from_slice(address_lookup_table_accounts);
-        self.total_compute_units = compute_units;
-        self.max_heap_frame = heap_frame;
-        Ok(Some(VersionedMessage::V0(msg)))
     }
 
     pub fn flush(&mut self) -> Result<Option<VersionedMessage>, TransactorError> {
@@ -209,11 +171,11 @@ impl IxCompiler {
                 &self.ix_buffer[..],
             ]
             .concat(),
-            &self.address_lookup_table_accounts,
+            &self.alt_accounts,
             Hash::default(),
         )?;
         self.ix_buffer.clear();
-        self.address_lookup_table_accounts.clear();
+        self.alt_accounts.clear();
         self.total_compute_units = 0;
         self.max_heap_frame = None;
         Ok(Some(VersionedMessage::V0(msg)))
