@@ -1,5 +1,5 @@
 use serde::{de::Error, Deserialize, Deserializer};
-use solana_sdk::commitment_config::{CommitmentConfig, CommitmentLevel};
+use solana_commitment_config::{CommitmentConfig, CommitmentLevel};
 
 use crate::solana_transactor::RpcEntry;
 

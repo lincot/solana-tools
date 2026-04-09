@@ -1,9 +1,8 @@
+use solana_compute_budget_interface::ComputeBudgetInstruction;
 use solana_sdk::{
-    address_lookup_table::AddressLookupTableAccount,
-    compute_budget::ComputeBudgetInstruction,
     hash::Hash,
     instruction::Instruction,
-    message::{v0::Message, VersionedMessage},
+    message::{v0::Message, AddressLookupTableAccount, VersionedMessage},
     pubkey::Pubkey,
 };
 use std::fmt::Display;
@@ -91,7 +90,7 @@ impl IxCompiler {
                 &[get_compute_units_ix(compute_units)],
                 &self.get_ix_price_if_any()[..],
                 &get_heap_frame_ix(heap_frame),
-                &[ix.clone()],
+                std::slice::from_ref(&ix),
             ]
             .concat(),
             alt_accounts,
@@ -111,7 +110,7 @@ impl IxCompiler {
             &self.get_ix_price_if_any()[..],
             &get_heap_frame_ix(max_heap_frame),
             &self.ix_buffer[..],
-            &[ix.clone()],
+            std::slice::from_ref(&ix),
         ]
         .concat();
         let alt_accounts_all = [&self.alt_accounts[..], alt_accounts].concat();

@@ -1,11 +1,12 @@
 use log::{debug, error};
+use solana_commitment_config::CommitmentConfig;
 
 use crate::solana_transactor::RpcPool;
 use solana_client::{
     rpc_client::GetConfirmedSignaturesForAddress2Config, rpc_config::RpcTransactionConfig,
     rpc_response::RpcConfirmedTransactionStatusWithSignature,
 };
-use solana_sdk::{commitment_config::CommitmentConfig, pubkey::Pubkey, signature::Signature};
+use solana_sdk::{pubkey::Pubkey, signature::Signature};
 use solana_transaction_status::UiTransactionEncoding;
 use std::{collections::VecDeque, str::FromStr, time::Duration};
 use tokio::sync::mpsc::UnboundedSender;

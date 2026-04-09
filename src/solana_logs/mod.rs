@@ -1,5 +1,3 @@
-use log::error;
-
 use thiserror::Error;
 
 pub(crate) mod config;

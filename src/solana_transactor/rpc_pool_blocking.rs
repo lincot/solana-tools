@@ -1,5 +1,5 @@
 use solana_client::{client_error::reqwest::Url, rpc_client::RpcClient};
-use solana_sdk::commitment_config::CommitmentConfig;
+use solana_commitment_config::CommitmentConfig;
 use std::{
     fmt::Debug,
     sync::atomic::{AtomicU64, Ordering},

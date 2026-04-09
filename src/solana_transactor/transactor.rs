@@ -3,8 +3,8 @@
 
 use futures::{StreamExt, TryStreamExt};
 use solana_client::rpc_config::RpcSendTransactionConfig;
+use solana_commitment_config::CommitmentConfig;
 use solana_sdk::{
-    commitment_config::CommitmentConfig,
     hash::Hash,
     message::VersionedMessage,
     pubkey::Pubkey,
@@ -53,12 +53,7 @@ impl MessageBundle {
     pub fn new(message: &VersionedMessage, signers: &[&Keypair], payer: Pubkey) -> Self {
         Self {
             message: message.to_owned(),
-            signers: Arc::new(
-                signers
-                    .iter()
-                    .map(|x| Keypair::from_bytes(&x.to_bytes()).expect("Always 64 bytes"))
-                    .collect(),
-            ),
+            signers: Arc::new(signers.iter().map(|x| x.insecure_clone()).collect()),
             payer,
         }
     }

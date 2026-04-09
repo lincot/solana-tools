@@ -1,21 +1,18 @@
+use anchor_lang::system_program;
 use log::debug;
+use solana_commitment_config::CommitmentConfig;
 use std::{collections::HashSet, time::Duration};
 
+use solana_address_lookup_table_interface::{
+    instruction::{
+        close_lookup_table, create_lookup_table, deactivate_lookup_table, extend_lookup_table,
+    },
+    state::AddressLookupTable,
+};
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::{
-    address_lookup_table::{
-        instruction::{
-            close_lookup_table, create_lookup_table, deactivate_lookup_table, extend_lookup_table,
-        },
-        state::AddressLookupTable,
-        AddressLookupTableAccount,
-    },
-    commitment_config::CommitmentConfig,
-    instruction::AccountMeta,
-    pubkey::Pubkey,
-    signature::Keypair,
-    signer::Signer,
-    system_program,
+    instruction::AccountMeta, message::AddressLookupTableAccount, pubkey::Pubkey,
+    signature::Keypair, signer::Signer,
 };
 
 use super::{ix_compiler::InstructionBundle, SolanaTransactor, TransactorError};
@@ -70,7 +67,7 @@ pub async fn send_with_alt(
             chunk.to_vec(),
         );
         ix.accounts.push(AccountMeta {
-            pubkey: system_program::ID,
+            pubkey: Pubkey::new_from_array(system_program::ID.to_bytes()),
             is_signer: false,
             is_writable: false,
         });
